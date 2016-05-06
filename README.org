@@ -1,0 +1,18 @@
+#+TITLE: README
+#+DATE: <2016-04-26 Fri>
+#+OPTIONS: ':nil *:t -:t ::t <:t H:5 \n:nil ^:t arch:headline author:t c:nil
+#+OPTIONS: creator:comment d:(not "LOGBOOK") date:t e:t email:nil f:t inline:t
+#+OPTIONS: num:t p:nil pri:nil stat:t tags:t tasks:t tex:t timestamp:t toc:t
+#+OPTIONS: todo:t |:t
+#+CREATOR: Emacs 25.1.50.1 (Org mode 8.2.10)
+#+DESCRIPTION:
+#+EXCLUDE_TAGS: noexport
+#+KEYWORDS:
+#+LANGUAGE: en
+#+SELECT_TAGS: export
+
+* Long short-term memory(LSTM)/Encoder-Decoder Scheme
+* References
+1. Ilya Sutskever, Oriol Vinyals, Quoc V. Le, Sequence to Sequence Learning with Neural Networks, https://papers.nips.cc/paper/5346-sequence-to-sequence-learning-with-neural-networks.pdf
+2. Deep Learning, Ian Goodfellow, Yoshua Bengio and Aaron Courville, P385, http://www.deeplearningbook.org
+3. LSTM: A Search Space Odyssey, Klaus Greff, Rupesh Kumar Srivastava, Jan Koutník, Bas R. Steunebrink, Jürgen Schmidhuber, http://arxiv.org/abs/1503.04069
