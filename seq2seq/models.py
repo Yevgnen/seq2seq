@@ -8,9 +8,8 @@ import numpy as np
 import theano
 import theano.tensor as T
 from matplotlib import pyplot as plt
-from theano import shared
 
-from layers import LSTM, Embedding, FullConnected, TimeDistributed
+from layers import LSTM, Embedding, TimeDistributed
 from optimizer import SGD
 
 
@@ -169,8 +168,8 @@ class Seq2seq(object):
         (contexts, _) = self.encoder.forward(batch_x, mask_x)
 
         # Decode
-        prediction = self.decoder.forward(contexts, mask_y)
-        return prediction
+        probs = self.decoder.forward(contexts, mask_y)
+        return probs
 
     def predict(self, batch_x, mask_x, batch_y, mask_y):
         probs = self.forward(batch_x, mask_x, batch_y, mask_y)
@@ -179,20 +178,21 @@ class Seq2seq(object):
         def predict(prob, mask):
             valid_index = T.nonzero(mask > 0)[0]
             prob = prob[valid_index]
-            ppp = theano.printing.Print(' -> ')(prob)
-            word_index = T.zeros((batch_size,))
-            word_index = T.set_subtensor(word_index[valid_index], T.argmax(ppp, axis=1))
-            return word_index   # 0?
+            word_index = T.zeros((batch_size,), dtype='int32')
+            word_index = T.set_subtensor(word_index[valid_index], T.argmax(prob, axis=1))  # +1?
+            return word_index
 
         results, updates = theano.scan(
             fn=predict,
             sequences=[probs, mask_y]
         )
         # FIXME: Symbols or numbers ?
-        return results
+        return np.swapaxes(results, 0, 1)
 
     def loss(self, batch_x, mask_x, batch_y, mask_y):
-        time = mask_y.shape[0]
+        # The time steps should be the length of longest sentence.
+        # time = mask_y.shape[0] will cause NaN.
+        time = T.max(T.sum(mask_y, axis=0))
         loss = 0.0
         probs = self.forward(batch_x, mask_x, batch_y, mask_y)
 
@@ -205,7 +205,9 @@ class Seq2seq(object):
 
         results, updates = theano.scan(
             fn=loss_of_time,
-            sequences=[probs, batch_y.T, mask_y]
+            sequences=[probs, batch_y.T, mask_y],
+            outputs_info=None,
+            n_steps=time
         )
 
         loss = T.sum(results) / time
@@ -240,7 +242,7 @@ class Seq2seq(object):
         )
 
         if monitor:
-            plt.figure()
+            plt.figure(figsize=(6, 4))
             plt.xlabel('epoch * batch\_num + batch\_index')
             plt.ylabel('Loss on batch')
             plt.title('Monitoring loss on training')
@@ -254,11 +256,16 @@ class Seq2seq(object):
                 print('{0} - epoch: {1:3d}, batch: {2:3d}, loss: {3}'.format(timestr, i + 1, j + 1, batch_loss))
 
                 if monitor and i + j > 0:
-                    plt.xlim(0, i * batch_num + j + 1)
-                    plt.ylim(0, np.max(losses) + 1)
-                    # plt.scatter(i * batch_num + j, batch_loss)
+                    (x_min, x_max) = (0, i * batch_num + j + 1)
+                    (y_min, y_max) = (0, np.max(losses) + 1)
+                    plt.xlim(x_min, x_max)
+                    plt.ylim(y_min, y_max)
+
                     this_x = i * batch_num + j
                     plt.plot([this_x - 1, this_x], [losses[this_x - 1], batch_loss], 'g-', lw=1)
-                    plt.pause(0.0001)
+                    plt.pause(0.001)
+
+        if monitor:
+            plt.savefig('train.png')
 
         return np.asarray(losses).reshape(epoch, batch_num)

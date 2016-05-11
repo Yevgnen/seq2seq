@@ -22,9 +22,6 @@ class Layer(object):
     def forward(self):
         raise NotImplementedError
 
-    def backward(self):
-        raise NotImplementedError
-
 
 class FullConnected(Layer):
     def __init__(self, input_size, output_size, activation='tanh', regularizer='l2'):
