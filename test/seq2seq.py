@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import sys
-sys.setrecursionlimit(40000)
 
 import numpy as np
 import theano
@@ -12,39 +11,44 @@ from theano import shared
 
 from layers import LSTM, FullConnected, TimeDistributed
 from models import Decoder, Encoder, Seq2seq, Sequential
+from utils import masking, padding
 
-# model = Sequential(
-#     [
-#         LSTM(4, 10)
-#     ])
+x1 = [2, 1, 1, 1, 2, 4, 2]
+x2 = [2, 1]
+x3 = [2, 1, 4, 3, 1]
+x_value = np.asarray([x1, x2, x3])
 
-# X = np.array([[1, 2, 3, 2],
-#               [1, 4, 7, 9],
-#               [9, 8, 2, 7],
-#               [9, 8, 2, 7],
-#               [1, 2, 3, 2],
-#               [1, 4, 7, 9],
-#               [9, 8, 2, 7],
-#               [9, 8, 2, 7]])
-# T = np.array([1, 0, 2, 1, 1, 0, 2, 1])
+y1 = [4, 3, 2, 1, 1]
+y2 = [4, 3, 6]
+y3 = [1, 2, 4, 3, 2, 1, 1]
+y_value = np.asarray([y1, y2, y3])
 
-# (H, C) = model.forward(X)
+mask_x_value = masking(x_value)
+padded_x_value = padding(x_value, 0)
+mask_x = shared(mask_x_value, name='mask_x')
+padded_x = shared(padded_x_value, name='padded_x')
 
-x = [0, 1, 4, 2, 5, 6, 1, 2, 4, 5]
-y = [1, 4, 2, 5, 6, 1, 2, 4, 5, 9, 1, 2, 3, 4, 5]
+mask_y_value = masking(y_value)
+padded_y_value = padding(y_value, 0)
+mask_y = shared(mask_y_value, name='mask_y')
+padded_y = shared(padded_y_value, name='padded_y')
 
-X = rng.randint(low=0, high=10, size=((3000, 15)))
-Y = rng.randint(low=0, high=10, size=((3000, 20)))
+encoder_vocab_size = 10
+encoder_embedding_size = 4
+encoder_hidden_size = 6
 
-# encoder = Encoder(10, 6, 8)
-# h = encoder.forward(x)
+decoder_vocab_size = 8
+decoder_embedding_size = 5
+decoder_hidden_size = 6
+decoder_output_size = 3
 
-# decoder = Decoder(6, 12)
-# Y = decoder.forward(h, len(x))
+model = Seq2seq(encoder_vocab_size, encoder_embedding_size, encoder_hidden_size,
+                decoder_vocab_size, decoder_embedding_size, decoder_hidden_size, decoder_output_size)
 
-seq2seq = Seq2seq(10, 6, 8, 6, 12, 20)
-# loss = seq2seq.each_loss(x, y)
-loss = seq2seq.loss(X, Y)
+index2word = {1: 'One', 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five', 6: 'Six'}
 
-
-import ipdb; ipdb.set_trace()
+# P = model.forward(padded_x, mask_x, padded_y, mask_y)
+# loss = model.loss(padded_x, mask_x, padded_y, mask_y)
+model.train(padded_x, mask_x, padded_y, mask_y, epoch=1000, batch_size=3, monitor=True)
+predict = model.predict(padded_x, mask_x, padded_y, mask_y)
+print(predict.eval())

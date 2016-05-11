@@ -57,9 +57,6 @@ class Embedding(FullConnected):
 
     def forward(self, X):
         return self.activation(self.W[:, X].T + self.b)
-        # return T.as_tensor_variable([self.activation(self.W[:, x].T + self.b) for x in X])
-        # sum = self.W[:, x].T + self.b
-        # return self.activation(sum)
 
 
 class TimeDistributed(FullConnected):
@@ -68,12 +65,11 @@ class TimeDistributed(FullConnected):
 
 
 class LSTM(Layer):
-    # def __init__(self, input_size, hidden_size, activation='softmax', return_sentences=True, feed_output=False):
     def __init__(self, input_size, hidden_size):
         self.input_size = input_size
         self.hidden_size = hidden_size
 
-        param_names = ['Wz', 'Wi', 'Wf', 'Wo', 'Rz', 'Ri', 'Rf', 'Ro', 'pi', 'pf', 'po', 'bz', 'bi', 'bf', 'bo', 'V', 'c']
+        param_names = ['Wz', 'Wi', 'Wf', 'Wo', 'Rz', 'Ri', 'Rf', 'Ro', 'pi', 'pf', 'po', 'bz', 'bi', 'bf', 'bo']
         params = []
 
         for param_name in param_names:
@@ -83,10 +79,6 @@ class LSTM(Layer):
                 shape = (hidden_size, input_size)
             elif prefix == 'R':
                 shape = (hidden_size, hidden_size)
-            elif prefix == 'V':
-                shape = (input_size, hidden_size)
-            elif prefix == 'c':
-                shape = (input_size,)
             else:
                 shape = (hidden_size,)
 
@@ -105,11 +97,6 @@ class LSTM(Layer):
             setattr(self, param_name, param)
         self.params = params
 
-        # self.activation = ACTIVATION[activation]
-
-        # self.retrun_sentences = return_sentences
-        # self.feed_output = feed_output
-
     def _stack(self):
         return (T.concatenate([self.Wz, self.Wi, self.Wf, self.Wo]),
                 T.concatenate([self.Rz, self.Ri, self.Rf, self.Ro]))
@@ -117,7 +104,7 @@ class LSTM(Layer):
     def _slice(self, M):
         return np.asarray([M[:, i * self.hidden_size: (i + 1) * self.hidden_size] for i in range(4)])
 
-    def lstm_step(self, batch, mask, prev_h, prev_c):
+    def step(self, batch, mask, prev_h, prev_c):
         """Forward a time step of minibatch.
 
         Reference: [1] LSTM: A Search Space Odyssey, Klaus Greff, Rupesh Kumar Srivastava, Jan Koutník,
@@ -158,57 +145,11 @@ class LSTM(Layer):
         (sens_size, batch_size, embedding_size) = T.shape(batch)
 
         ((H, C), _) = theano.scan(
-            fn=self.lstm_step,
+            fn=self.step,
             outputs_info=[
                 dict(initial=T.zeros((batch_size, self.hidden_size)), taps=[-1]),
                 dict(initial=T.zeros((batch_size, self.hidden_size)), taps=[-1])],
-            sequences=[batch, mask]       # ``X`` is a matrix whose row represents a word
-        )
-
-        return (H, C)
-
-    def step(self, x, prev_h, prev_c):
-        """Forward a time step.
-
-        Reference: [1] LSTM: A Search Space Odyssey, Klaus Greff, Rupesh Kumar Srivastava, Jan Koutník,
-                       Bas R. Steunebrink, Jürgen Schmidhuber, http://arxiv.org/abs/1503.04069
-        """
-        # Block input
-        zbar = T.dot(x, self.Wz.T) + T.dot(prev_h, self.Rz.T) + self.bz
-        z = T.tanh(zbar)
-
-        # Input gate
-        ibar = T.dot(x, self.Wi.T) + T.dot(prev_h, self.Ri.T) + self.pi * prev_c + self.bi
-        i = T.nnet.sigmoid(ibar)
-
-        # Forget gate
-        fbar = T.dot(x, self.Wf.T) + T.dot(prev_h, self.Rf.T) + self.pf * prev_c + self.bf
-        f = T.nnet.sigmoid(fbar)
-
-        # Cell
-        c = z * i + prev_c * f
-        a = T.tanh(c)
-
-        # Output gate
-        obar = T.dot(x, self.Wo.T) + T.dot(prev_h, self.Ro.T) + self.po * c + self.bo
-        o = T.nnet.sigmoid(obar)
-
-        # Block output
-        # The origin paper `LSTM: A Search Space Odyssey` use ``y`` to denote block output, but here use ``h`` instead.
-        h = a * o
-
-        # tilde_a = T.dot(h, self.V.T)
-        # y = self.activation(tilde_a)[0]  # T.nnet.softmax returns a 2D matrix
-
-        return (h, c)
-
-    def forward2(self, X):
-        ((H, C), _) = theano.scan(
-            fn=self.step,
-            outputs_info=[
-                dict(initial=np.zeros(self.hidden_size), taps=[-1]),
-                dict(initial=np.zeros(self.hidden_size), taps=[-1])],
-            sequences=[X]       # ``X`` is a matrix whose row represents a word
+            sequences=[batch, mask]
         )
 
         return (H, C)

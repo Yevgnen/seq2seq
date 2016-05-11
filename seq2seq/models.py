@@ -7,6 +7,7 @@ from datetime import datetime
 import numpy as np
 import theano
 import theano.tensor as T
+from matplotlib import pyplot as plt
 from theano import shared
 
 from layers import LSTM, Embedding, FullConnected, TimeDistributed
@@ -81,7 +82,7 @@ class Encoder(Sequential):
         self.embedding = Embedding(vocab_size, embedding_size)
         self.lstm = LSTM(embedding_size, hidden_size)
         self.layers = [self.embedding, self.lstm]
-        self.params = [list(itertools.chain(*[layer.params for layer in self.layers]))]
+        self.params = list(itertools.chain(*[layer.params for layer in self.layers]))
 
     def forward(self, batch, mask):
         # ``batch`` is a matrix whose row ``x`` is a sentence, e.g. x = [1, 4, 5, 2, 0]
@@ -97,68 +98,167 @@ class Encoder(Sequential):
 
 
 class Decoder(Sequential):
-    def __init__(self, hidden_size, output_size):
+    def __init__(self, vocab_size, embedding_size, hidden_size, output_size):
+        self.vocab_size = vocab_size
+        self.embedding_size = embedding_size
         self.hidden_size = hidden_size
         self.output_size = output_size
-        self.activation = T.nnet.softmax
 
-        self.lstm = LSTM(output_size, hidden_size)
-        self.output = TimeDistributed(hidden_size, output_size)
-        self.layers = [self.lstm, self.output]
-        self.params = [list(itertools.chain(*[layer.params for layer in self.layers]))]
+        self.lstm = LSTM(embedding_size, hidden_size)
+        self.lstm_output = TimeDistributed(hidden_size, output_size, activation='tanh')
+        self.softmax = TimeDistributed(output_size, vocab_size, activation='softmax')
+        self.embedding = Embedding(vocab_size, embedding_size)
 
-    def forward(self, context, time):
+        self.layers = [self.lstm, self.lstm_output, self.softmax, self.embedding]
+        self.params = list(itertools.chain(*[layer.params for layer in self.layers]))
 
-        def step(y, h, c):
+    def forward(self, contexts, mask):
+        (sens_size, batch_size) = T.shape(mask)
+
+        def step(m, prev_Y, prev_H, prev_C):
             """Forward a time step of the decoder."""
-            (h, c) = self.lstm.step(y, h, c)
-            y = self.output.forward(h)[0]  # T.nnet.softmax returns a 2D matrix
-            return (y, h, c)
+            # LSTM forward time step
+            (H, C) = self.lstm.step(prev_Y, m, prev_H, prev_C)
+            # LSTM output
+            O = self.lstm_output.forward(H)
+            # Apply softmax to LSTM output
+            P = self.softmax.forward(O)
+            # Make prediction
+            one_hot_Y = T.argmax(P, axis=1)
+            # Feed the output to the next time step
+            Y = self.embedding.forward(one_hot_Y)
+            # FIXME: Deal with differ length ?
+            return (P, Y, H, C)
 
         results, updates = theano.scan(
             fn=step,
+            sequences=[mask],
             outputs_info=[
-                dict(initial=np.zeros(self.output_size), taps=[-1]),
-                dict(initial=np.zeros(self.hidden_size), taps=[-1]),
-                dict(initial=np.zeros(self.hidden_size), taps=[-1])],
-            n_steps=time
+                dict(),
+                dict(initial=T.zeros((batch_size, self.embedding_size)), taps=[-1]),
+                dict(initial=contexts, taps=[-1]),
+                dict(initial=T.zeros((batch_size, self.hidden_size)), taps=[-1])
+            ]
         )
 
+        # return np.swapaxes(results[0], 0, 1)       # returns the softmax probabilities
         return results[0]
 
 
 class Seq2seq(object):
-    def __init__(self, vocab_size, input_embedding_size, encoder_hidden_size,
-                 decoder_hidden_size, output_size, output_embedding_size, optimizer=SGD()):
-        self.vocab_size = vocab_size
-        self.input_embedding_size = input_embedding_size
+    def __init__(self, encoder_vocab_size, encoder_embedding_size, encoder_hidden_size,
+                 decoder_vocab_size, decoder_embedding_size, decoder_hidden_size, decoder_output_size,
+                 optimizer=SGD()):
+        self.encoder_vocab_size = encoder_vocab_size
+        self.encoder_embedding_size = encoder_embedding_size
         self.encoder_hidden_size = encoder_hidden_size
-        self.decoder_hidden_size = decoder_hidden_size
-        self.output_size = output_size
-        self.output_embedding_size = output_embedding_size
 
-        self.encoder = Encoder(vocab_size, input_embedding_size, encoder_hidden_size)
-        self.decoder = Decoder(decoder_hidden_size, output_size)
+        self.decoder_embedding_size = decoder_embedding_size
+        self.decoder_hidden_size = decoder_hidden_size
+        self.decoder_outout_size = decoder_output_size
+
+        self.encoder = Encoder(encoder_vocab_size, encoder_embedding_size, encoder_hidden_size)
+        self.decoder = Decoder(decoder_vocab_size, decoder_embedding_size, decoder_hidden_size, decoder_output_size)
 
         self.optimizer = optimizer
 
-    def forward_sentence(self, x, y):
+        self.params = self.encoder.params + self.decoder.params
+
+    def forward(self, batch_x, mask_x, batch_y, mask_y):
         # Encode
-        (h, c) = self.encoder.forward(x)  # ``h`` is the context output by the encoder
+        (contexts, _) = self.encoder.forward(batch_x, mask_x)
 
         # Decode
-        prediction = self.decoder.forward(h, len(y))  # Each row of ``prediction`` respects to a word
+        prediction = self.decoder.forward(contexts, mask_y)
         return prediction
 
-    def each_loss(self, x, y):
-        prediction = self.forward_sentence(x, y)
-        return -T.mean(T.sum(T.log(prediction)[T.arange(len(y)), y]))
+    def predict(self, batch_x, mask_x, batch_y, mask_y):
+        probs = self.forward(batch_x, mask_x, batch_y, mask_y)
+        batch_size = T.shape(batch_x)[0]
 
-    def loss(self, X, Y):
+        def predict(prob, mask):
+            valid_index = T.nonzero(mask > 0)[0]
+            prob = prob[valid_index]
+            ppp = theano.printing.Print(' -> ')(prob)
+            word_index = T.zeros((batch_size,))
+            word_index = T.set_subtensor(word_index[valid_index], T.argmax(ppp, axis=1))
+            return word_index   # 0?
+
+        results, updates = theano.scan(
+            fn=predict,
+            sequences=[probs, mask_y]
+        )
+        # FIXME: Symbols or numbers ?
+        return results
+
+    def loss(self, batch_x, mask_x, batch_y, mask_y):
+        time = mask_y.shape[0]
         loss = 0.0
-        sens_num = X.shape[0]
+        probs = self.forward(batch_x, mask_x, batch_y, mask_y)
 
-        for (x, y) in zip(X, Y):
-            loss += self.each_loss(x, y)
+        def loss_of_time(prob, y, mask):
+            valid_index = T.nonzero(mask > 0)[0]
+            prob = prob[valid_index]
+            valid_batch_size = T.sum(mask)
+            loss = -T.sum(T.log(prob[T.arange(valid_batch_size), y[valid_index]]))
+            return loss / valid_batch_size
 
-        return loss / sens_num
+        results, updates = theano.scan(
+            fn=loss_of_time,
+            sequences=[probs, batch_y.T, mask_y]
+        )
+
+        loss = T.sum(results) / time
+
+        return loss
+
+    def train(self, train_x, mask_x, train_y, mask_y, epoch=10, batch_size=128, monitor=False):
+        sample_num = train_x.get_value(borrow=True).shape[0]
+
+        batch_index = T.iscalar('batch_index')
+        batch_num = sample_num // batch_size
+
+        x = T.imatrix('x')
+        y = T.imatrix('y')
+        m_x = T.imatrix('m_x')
+        m_y = T.imatrix('m_y')
+
+        loss = self.loss(x, m_x, y, m_y)
+
+        updates = self.optimizer.get_updates(loss, self.params)
+
+        train_model = theano.function(
+            inputs=[batch_index],
+            outputs=loss,
+            updates=updates,
+            givens=[
+                (x, train_x[batch_index * batch_size: (batch_index + 1) * batch_size]),
+                (y, train_y[batch_index * batch_size: (batch_index + 1) * batch_size]),
+                (m_x, mask_x[:, batch_index * batch_size: (batch_index + 1) * batch_size]),
+                (m_y, mask_y[:, batch_index * batch_size: (batch_index + 1) * batch_size])
+            ]
+        )
+
+        if monitor:
+            plt.figure()
+            plt.xlabel('epoch * batch\_num + batch\_index')
+            plt.ylabel('Loss on batch')
+            plt.title('Monitoring loss on training')
+
+        losses = []
+        for i in range(epoch):
+            for j in range(batch_num):
+                batch_loss = train_model(j)
+                losses.append(batch_loss)
+                timestr = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                print('{0} - epoch: {1:3d}, batch: {2:3d}, loss: {3}'.format(timestr, i + 1, j + 1, batch_loss))
+
+                if monitor and i + j > 0:
+                    plt.xlim(0, i * batch_num + j + 1)
+                    plt.ylim(0, np.max(losses) + 1)
+                    # plt.scatter(i * batch_num + j, batch_loss)
+                    this_x = i * batch_num + j
+                    plt.plot([this_x - 1, this_x], [losses[this_x - 1], batch_loss], 'g-', lw=1)
+                    plt.pause(0.0001)
+
+        return np.asarray(losses).reshape(epoch, batch_num)
