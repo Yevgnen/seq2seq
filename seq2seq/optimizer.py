@@ -41,9 +41,26 @@ class SGD(Optimizer):
         return self.updates
 
 
-class RMSProp(Optimizer):
-    def __init__(self):
-        return
+class RMSprop(Optimizer):
+    def __init__(self, lr=0.001, gamma=0.9, eps=1e-6):
+        super(RMSprop, self).__init__()
+        self.lr = shared(lr, name='lr')
+        self.gamma = gamma
+        self.eps = eps
+
+    def get_updates(self, loss, params):
+        # gradients
+        grads = [T.grad(loss, param) for param in params]
+
+        self.gradients = [shared(value=np.zeros_like(param.get_value(borrow=True))) for param in params]
+        for p, g, h in zip(params, grads, self.gradients):
+            new_h = self.gamma * h + (1 - self.gamma) * T.square(g)
+            self.updates.append((h, new_h))
+
+            new_p = p - (self.lr * g) / T.sqrt(new_h + self.eps)
+            self.updates.append((p, new_p))
+
+        return self.updates
 
 
 class Adam(Optimizer):

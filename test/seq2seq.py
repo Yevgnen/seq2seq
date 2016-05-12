@@ -7,10 +7,10 @@ from numpy import random as rng
 from theano import shared
 
 from models import Seq2seq
-from optimizer import SGD
+from optimizer import SGD, RMSprop
 from utils import masking, padding
 
-vocab_size = 100
+vocab_size = 6
 sample_size = 3
 
 x1 = [2, 1, 1, 1, 2, 4, 2]
@@ -56,7 +56,7 @@ decoder_output_size = 3
 
 model = Seq2seq(encoder_vocab_size, encoder_embedding_size, encoder_hidden_size,
                 decoder_vocab_size, decoder_embedding_size, decoder_hidden_size, decoder_output_size,
-                optimizer=SGD(lr=1.0, decay=0.06))
+                RMSprop(lr=0.1, gamma=0.9, eps=1e-6))
 
 dest_index2word = dict((i, str(i)) for i in range(vocab_size + 1))
 

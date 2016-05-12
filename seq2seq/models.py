@@ -10,7 +10,7 @@ import theano.tensor as T
 from matplotlib import pyplot as plt
 
 from layers import LSTM, Embedding, TimeDistributed
-from optimizer import SGD
+from optimizer import SGD, RMSprop
 
 
 class Sequential(object):
@@ -147,7 +147,7 @@ class Decoder(Sequential):
 class Seq2seq(object):
     def __init__(self, encoder_vocab_size, encoder_embedding_size, encoder_hidden_size,
                  decoder_vocab_size, decoder_embedding_size, decoder_hidden_size, decoder_output_size,
-                 optimizer=SGD()):
+                 optimizer=RMSprop()):
         self.encoder_vocab_size = encoder_vocab_size
         self.encoder_embedding_size = encoder_embedding_size
         self.encoder_hidden_size = encoder_hidden_size
@@ -172,12 +172,15 @@ class Seq2seq(object):
         return probs
 
     def predict(self, batch_x, mask_x, batch_y, mask_y):
-        probs = self.forward(batch_x, mask_x, batch_y, mask_y)
         batch_size = T.shape(batch_x)[0]
+
+        probs = self.forward(batch_x, mask_x, batch_y, mask_y)
 
         def predict(prob, mask):
             valid_index = T.nonzero(mask > 0)[0]
+            # v = theano.printing.Print(' -> ')(valid_index)
             prob = prob[valid_index]
+            # p = theano.printing.Print(' -> ')(prob)
             word_index = T.zeros((batch_size,), dtype='int32')
             word_index = T.set_subtensor(word_index[valid_index], T.argmax(prob, axis=1))  # +1?
             return word_index
@@ -190,27 +193,27 @@ class Seq2seq(object):
         return np.swapaxes(results, 0, 1)
 
     def loss(self, batch_x, mask_x, batch_y, mask_y):
-        # The time steps should be the length of longest sentence.
+        # The time steps should be the length of longest sentence of the batch.
         # time = mask_y.shape[0] will cause NaN.
-        time = T.max(T.sum(mask_y, axis=0))
         loss = 0.0
+        time = T.max(T.sum(mask_y, axis=0))
+        batch_size = T.shape(batch_x)[0]
+
         probs = self.forward(batch_x, mask_x, batch_y, mask_y)
 
         def loss_of_time(prob, y, mask):
             valid_index = T.nonzero(mask > 0)[0]
-            prob = prob[valid_index]
-            valid_batch_size = T.sum(mask)
-            loss = -T.sum(T.log(prob[T.arange(valid_batch_size), y[valid_index]]))
-            return loss / valid_batch_size
+            # FIXME: why y log twice ?
+            loss = -T.sum(T.log(prob[valid_index, y[valid_index]]))
+            return loss
 
         results, updates = theano.scan(
             fn=loss_of_time,
             sequences=[probs, batch_y.T, mask_y],
-            outputs_info=None,
             n_steps=time
         )
 
-        loss = T.sum(results) / time
+        loss = T.sum(results) / batch_size
 
         return loss
 
