@@ -8,25 +8,36 @@ from theano import shared
 
 
 class Optimizer(object):
-    def __init__(self):
+    def __init__(self, clip=0.0):
         self.iterations = shared(0, name='iterations')
         self.updates = [(self.iterations, self.iterations + 1)]
+        self.clip = clip
+
+    def get_gradients(self, loss, params):
+        grads = [T.grad(loss, param) for param in params]
+        if self.clip and self.clip > 0:
+            grads = self.clipping(grads)
+        return grads
+
+    def clipping(self, grads):
+        grads = [T.clip(g, -self.clip, self.clip) for g in grads]
+        return grads
 
 
 class SGD(Optimizer):
-    def __init__(self, lr=0.1, decay=0., momentum=0.):
-        super(SGD, self).__init__()
+    def __init__(self, clip=0.0, lr=0.1, decay=0.0, momentum=0.0):
+        super(SGD, self).__init__(clip=clip)
         self.lr = shared(lr, name='lr')
         self.decay = decay
         self.momentum = momentum
 
     def get_updates(self, loss, params):
+        # gradient
+        grads = self.get_gradients(loss, params)
+
         # update learning rate
         lr = self.lr * (1. / (1. + self.decay * self.iterations))
         self.updates.append((self.lr, lr))
-
-        # gradient
-        grads = [T.grad(loss, param) for param in params]
 
         # momentum
         self.momentums = [shared(value=np.zeros_like(param.get_value(borrow=True))) for param in params]
@@ -42,22 +53,22 @@ class SGD(Optimizer):
 
 
 class RMSprop(Optimizer):
-    def __init__(self, lr=0.001, gamma=0.9, eps=1e-6):
-        super(RMSprop, self).__init__()
+    def __init__(self, clip=0.0, lr=0.001, gamma=0.9, eps=1e-8):
+        super(RMSprop, self).__init__(clip=clip)
         self.lr = shared(lr, name='lr')
         self.gamma = gamma
         self.eps = eps
 
     def get_updates(self, loss, params):
         # gradients
-        grads = [T.grad(loss, param) for param in params]
+        grads = self.get_gradients(loss, params)
 
         self.gradients = [shared(value=np.zeros_like(param.get_value(borrow=True))) for param in params]
         for p, g, h in zip(params, grads, self.gradients):
             new_h = self.gamma * h + (1 - self.gamma) * T.square(g)
             self.updates.append((h, new_h))
 
-            new_p = p - (self.lr * g) / T.sqrt(new_h + self.eps)
+            new_p = p - (self.lr * g) / (T.sqrt(new_h) + self.eps)
             self.updates.append((p, new_p))
 
         return self.updates
