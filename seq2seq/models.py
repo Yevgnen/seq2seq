@@ -111,7 +111,7 @@ class Decoder(Sequential):
         self.layers = [self.lstm, self.lstm_output, self.softmax, self.embedding]
         self.params = list(itertools.chain(*[layer.params for layer in self.layers]))
 
-    def forward(self, contexts, mask):
+    def forward(self, ec_H, ec_C, mask):
         (sens_size, batch_size) = T.shape(mask)
 
         def step(m, prev_Y, prev_H, prev_C):
@@ -133,10 +133,10 @@ class Decoder(Sequential):
             fn=step,
             sequences=[mask],
             outputs_info=[
-                dict(),
+                None,
                 dict(initial=T.zeros((batch_size, self.embedding_size)), taps=[-1]),
-                dict(initial=contexts, taps=[-1]),
-                dict(initial=T.zeros((batch_size, self.hidden_size)), taps=[-1])
+                dict(initial=ec_H, taps=[-1]),
+                dict(initial=ec_C, taps=[-1])
             ]
         )
 
@@ -165,10 +165,10 @@ class Seq2seq(object):
 
     def forward(self, batch_x, mask_x, batch_y, mask_y):
         # Encode
-        (contexts, _) = self.encoder.forward(batch_x, mask_x)
+        (H, C) = self.encoder.forward(batch_x, mask_x)
 
         # Decode
-        probs = self.decoder.forward(contexts, mask_y)
+        probs = self.decoder.forward(H, C, mask_y)
         return probs
 
     def predict(self, batch_x, mask_x, batch_y, mask_y):
