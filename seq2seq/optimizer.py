@@ -74,6 +74,27 @@ class RMSprop(Optimizer):
         return self.updates
 
 
+class AdaGrad(Optimizer):
+    def __init__(self, clip=0.0, lr=0.01, eps=1e-8):
+        super(AdaGrad, self).__init__(clip=clip)
+        self.lr = shared(lr, name='lr')
+        self.eps = eps
+
+    def get_updates(self, loss, params):
+        # gradients
+        grads = self.get_gradients(loss, params)
+
+        self.gradients = [shared(value=np.zeros_like(param.get_value(borrow=True))) for param in params]
+        for p, g, h in zip(params, grads, self.gradients):
+            new_h = h + T.square(g)
+            self.updates.append((h, new_h))
+
+            new_p = p - (self.lr * g) / (T.sqrt(new_h) + self.eps)
+            self.updates.append((p, new_p))
+
+        return self.updates
+
+
 class Adam(Optimizer):
     def __init__(self):
         return
