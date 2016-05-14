@@ -66,16 +66,16 @@ class LSTM(Layer):
         self.input_size = input_size
         self.hidden_size = hidden_size
 
-        param_names = ['Wz', 'Wi', 'Wf', 'Wo', 'Rz', 'Ri', 'Rf', 'Ro', 'pi', 'pf', 'po', 'bz', 'bi', 'bf', 'bo']
+        param_names = ['W', 'R', 'pi', 'pf', 'po', 'bz', 'bi', 'bf', 'bo']
         params = []
 
         for param_name in param_names:
             prefix = param_name[0]
             # Determine param shape
             if prefix == 'W':
-                shape = (hidden_size, input_size)
+                shape = (hidden_size * 4, input_size)
             elif prefix == 'R':
-                shape = (hidden_size, hidden_size)
+                shape = (hidden_size * 4, hidden_size)
             else:
                 shape = (hidden_size,)
 
@@ -94,12 +94,8 @@ class LSTM(Layer):
             setattr(self, param_name, param)
         self.params = params
 
-    def _stack(self):
-        return (T.concatenate([self.Wz, self.Wi, self.Wf, self.Wo]),
-                T.concatenate([self.Rz, self.Ri, self.Rf, self.Ro]))
-
-    def _slice(self, M):
-        return np.asarray([M[:, i * self.hidden_size: (i + 1) * self.hidden_size] for i in range(4)])
+    def _slice(self, M, i):
+        return M[:, i * self.hidden_size: (i + 1) * self.hidden_size]
 
     def step(self, batch, mask, prev_h, prev_c):
         """Forward a time step of minibatch.
@@ -107,28 +103,24 @@ class LSTM(Layer):
         Reference: [1] LSTM: A Search Space Odyssey, Klaus Greff, Rupesh Kumar Srivastava, Jan Koutník,
                        Bas R. Steunebrink, Jürgen Schmidhuber, http://arxiv.org/abs/1503.04069
         """
-        # Stack the weigth for fast matrix multiplication
-        (W, R) = self._stack()
-        Wx = T.dot(batch, W.T)
-        Rh = T.dot(prev_h, R.T)
-
-        Wxs = self._slice(Wx)
-        Rhs = self._slice(Rh)
+        # Compute the input and recurrent signals
+        Wx = T.dot(batch, self.W.T)
+        Rh = T.dot(prev_h, self.R.T)
 
         # Block input
-        z = T.tanh(Wxs[0] + Rhs[0] + self.bz)
+        z = T.tanh(self._slice(Wx, 0) + self._slice(Rh, 0) + self.bz)
 
         # Input gate
-        i = T.nnet.sigmoid(Wxs[1] + Rhs[1] + self.pi * prev_c + self.bi)
+        i = T.nnet.sigmoid(self._slice(Wx, 1) + self._slice(Rh, 1) + self.pi * prev_c + self.bi)
 
         # Forget gate
-        f = T.nnet.sigmoid(Wxs[2] + Rhs[2] + self.pf * prev_c + self.bf)
+        f = T.nnet.sigmoid(self._slice(Wx, 2) + self._slice(Rh, 2) + self.pf * prev_c + self.bf)
 
         # Cell
         c = z * i + prev_c * f
 
         # Output gate
-        o = T.nnet.sigmoid(Wxs[3] + Rhs[3] + self.po * c + self.bo)
+        o = T.nnet.sigmoid(self._slice(Wx, 3) + self._slice(Rh, 3) + self.po * c + self.bo)
 
         # Block output
         h = T.tanh(c) * o
