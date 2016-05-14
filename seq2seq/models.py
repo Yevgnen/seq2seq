@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import itertools
-from datetime import datetime
+import logging
 
 import numpy as np
 import theano
@@ -13,8 +13,14 @@ from layers import LSTM, Embedding, TimeDistributed
 from optimizer import SGD, RMSprop
 
 
-class Sequential(object):
-    def __init__(self, layers, loss='cross_entropy', optimizer=SGD()):
+class Model(object):
+    def __init__(self, logger=logging.getLogger(__name__)):
+        self.logger = logger
+
+
+class Sequential(Model):
+    def __init__(self, layers, loss='cross_entropy', optimizer=SGD(), logger=logging.getLogger(__name__)):
+        super(Sequential, self).__init__(logger)
         self.layers = layers
         self.params = list(itertools.chain(*[layer.params for layer in layers]))
         self.optimizer = optimizer
@@ -67,8 +73,7 @@ class Sequential(object):
         for i in range(epoch):
             for j in range(batch_num):
                 batch_loss = train_model(j)
-                timestr = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                print('{0} - epoch: {1:3d}, batch: {2:3d}, loss: {3}'.format(timestr, i + 1, j + 1, batch_loss))
+                self.logger.info('TRAINING - epoch: {0:3d}, batch: {1:3d}, loss: {2}'.format(i + 1, j + 1, batch_loss))
         return
 
 
@@ -85,7 +90,8 @@ class Encoder(Sequential):
 
     def forward(self, batch, mask):
         # ``batch`` is a matrix whose row ``x`` is a sentence, e.g. x = [1, 4, 5, 2, 0]
-        emb = self.embedding.forward(batch)  # ``emb`` is a list of embedding matrix, e[i].shape = (sene_size, embedding_size)
+        # ``emb`` is a list of embedding matrix, e[i].shape = (sene_size, embedding_size)
+        emb = self.embedding.forward(batch)
         (H, C) = self.lstm.forward(emb, mask)
         return (H[-1], C[-1])
 
@@ -138,10 +144,11 @@ class Decoder(Sequential):
         return results[0]
 
 
-class Seq2seq(object):
+class Seq2seq(Model):
     def __init__(self, encoder_vocab_size, encoder_embedding_size, encoder_hidden_size,
                  decoder_vocab_size, decoder_embedding_size, decoder_hidden_size, decoder_output_size,
-                 optimizer=RMSprop()):
+                 optimizer=RMSprop(), logger=logging.getLogger(__name__)):
+        super(Seq2seq, self).__init__(logger)
         self.encoder_vocab_size = encoder_vocab_size
         self.encoder_embedding_size = encoder_embedding_size
         self.encoder_hidden_size = encoder_hidden_size
@@ -249,8 +256,7 @@ class Seq2seq(object):
             for j in range(batch_num):
                 batch_loss = train_model(j)
                 train_losses.append(batch_loss)
-                timestr = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                print('{0} - TRAINING - epoch: {1:3d}, batch: {2:3d}, loss: {3}'.format(timestr, i + 1, j + 1, batch_loss))
+                self.logger.info('TRAINING - epoch: {0:3d}, batch: {1:3d}, loss: {2}'.format(i + 1, j + 1, batch_loss))
 
                 if monitor:
                     if len(train_losses) > 1:
