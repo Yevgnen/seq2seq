@@ -7,11 +7,13 @@ import re
 from sklearn.cross_validation import train_test_split
 from theano import shared
 
-from seq2seq.utils import masking, padding
+from seq2seq.utils import get_logger, masking, padding
+
+logger = get_logger()
 
 
 def read_file(file):
-    print('loading {0}...'.format(file))
+    logger.info('loading {0}...'.format(file))
     data_file = codecs.open(file, 'r', 'utf-8')
     sentences = []
 

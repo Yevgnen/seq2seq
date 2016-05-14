@@ -6,17 +6,12 @@ import logging
 from numpy import random as rng
 
 from loader import load_data
-from models import Seq2seq
-from optimizer import RMSprop
+from seq2seq.models import Seq2seq
+from seq2seq.optimizer import RMSprop
+from seq2seq.utils import get_logger
 
-logger = logging.getLogger(__name__)
-fh = logging.FileHandler('seq2seq.log')
-fh.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
-logger.addHandler(fh)
-
-logger.info('----------------------------------- Encoder - Decoder -----------------------------------')
+logger = get_logger()
+logger.info('--------------- Encoder - Decoder ---------------')
 logger.info('loading data...')
 (train_x, test_x,
  train_y, test_y,
@@ -60,7 +55,7 @@ def epoch_end_callback():
         logger.info(' Source: {0}'.format(' '.join(source)))
         logger.info(' Target: {0}'.format(' '.join(target)))
         logger.info('Predict: {0}'.format(' '.join(predict)))
-        logger.info('-----------------------------------------------------------------------------------------')
+        logger.info('-------------------------------------------------')
 
 logger.info('training...')
 epoch = 200
@@ -78,4 +73,4 @@ for (source, predict, target) in zip(test_x.get_value(borrow=True), predict.eval
     logger.info(' Source: {0}'.format(' '.join(source)))
     logger.info(' Target: {0}'.format(' '.join(target)))
     logger.info('Predict: {0}'.format(' '.join(predict)))
-    logger.info('-----------------------------------------------------------------------------------------')
+    logger.info('-------------------------------------------------')

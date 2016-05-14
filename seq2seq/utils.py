@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import logging
+
 import numpy as np
 
 
@@ -21,3 +23,27 @@ def masking(X):
     for i, x in enumerate(X):
         mask[0: len(x), i] = np.ones_like(x)
     return mask
+
+
+def get_logger():
+    logger = logging.getLogger('seq2seq')
+
+    if not logger.handlers:
+        logger.setLevel(logging.DEBUG)
+
+        format_str = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        formatter = logging.Formatter(format_str)
+
+        # Log to file
+        fh = logging.FileHandler('seq2seq.log')
+        fh.setLevel(logging.DEBUG)
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
+
+        # Log to stdout
+        sh = logging.StreamHandler()
+        sh.setLevel(logging.DEBUG)
+        sh.setFormatter(formatter)
+        logger.addHandler(sh)
+
+    return logger
