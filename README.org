@@ -13,8 +13,11 @@
 
 * Long short-term memory(LSTM)/Encoder-Decoder Scheme
 ** Scheme
-[[file:scheme.png][Encoder-Decoder Scheme]]
+#+CAPTION: The encoder-decoder scheme (source: [[http://qiita.com/odashi_t/items/a1be7c4964fbea6a116e#fnref3][ChainerとRNNと機械翻訳]])
+#+NAME: scheme
+[[file:scheme.png]]
 * References
 1. Ilya Sutskever, Oriol Vinyals, Quoc V. Le, Sequence to Sequence Learning with Neural Networks, https://papers.nips.cc/paper/5346-sequence-to-sequence-learning-with-neural-networks.pdf
 2. Deep Learning, Ian Goodfellow, Yoshua Bengio and Aaron Courville, P385, http://www.deeplearningbook.org
 3. LSTM: A Search Space Odyssey, Klaus Greff, Rupesh Kumar Srivastava, Jan Koutník, Bas R. Steunebrink, Jürgen Schmidhuber, http://arxiv.org/abs/1503.04069
+4. ChainerとRNNと機械翻訳, odashi_t, http://qiita.com/odashi_t/items/a1be7c4964fbea6a116e
