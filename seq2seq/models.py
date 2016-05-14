@@ -178,9 +178,7 @@ class Seq2seq(object):
 
         def predict(prob, mask):
             valid_index = T.nonzero(mask > 0)[0]
-            # v = theano.printing.Print(' -> ')(valid_index)
             prob = prob[valid_index]
-            # p = theano.printing.Print(' -> ')(prob)
             word_index = T.zeros((batch_size,), dtype='int32')
             word_index = T.set_subtensor(word_index[valid_index], T.argmax(prob, axis=1))  # +1?
             return word_index
@@ -217,11 +215,12 @@ class Seq2seq(object):
 
         return loss
 
-    def train(self, train_x, mask_x, train_y, mask_y, epoch=10, batch_size=128, monitor=False):
+    def train(self, train_x, mask_train_x, train_y, mask_train_y, epoch=10, batch_size=128, monitor=False,
+              epoch_end_callback=None):
         sample_num = train_x.get_value(borrow=True).shape[0]
 
         batch_index = T.iscalar('batch_index')
-        batch_num = sample_num // batch_size
+        batch_num = int(np.ceil(sample_num / batch_size))
 
         x = T.imatrix('x')
         y = T.imatrix('y')
@@ -239,36 +238,42 @@ class Seq2seq(object):
             givens=[
                 (x, train_x[batch_index * batch_size: (batch_index + 1) * batch_size]),
                 (y, train_y[batch_index * batch_size: (batch_index + 1) * batch_size]),
-                (m_x, mask_x[:, batch_index * batch_size: (batch_index + 1) * batch_size]),
-                (m_y, mask_y[:, batch_index * batch_size: (batch_index + 1) * batch_size])
+                (m_x, mask_train_x[:, batch_index * batch_size: (batch_index + 1) * batch_size]),
+                (m_y, mask_train_y[:, batch_index * batch_size: (batch_index + 1) * batch_size])
             ]
         )
 
         if monitor:
             plt.figure(figsize=(6, 4))
-            plt.xlabel('epoch * batch\_num + batch\_index')
-            plt.ylabel('Loss on batch')
-            plt.title('Monitoring loss on training')
+            plt.xlabel('Update count')
+            plt.ylabel('Loss')
+            plt.title('Monitoring')
 
-        losses = []
+        train_losses = []
+        updates_count = 0
         for i in range(epoch):
             for j in range(batch_num):
                 batch_loss = train_model(j)
-                losses.append(batch_loss)
+                train_losses.append(batch_loss)
                 timestr = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                print('{0} - epoch: {1:3d}, batch: {2:3d}, loss: {3}'.format(timestr, i + 1, j + 1, batch_loss))
+                print('{0} - TRAINING - epoch: {1:3d}, batch: {2:3d}, loss: {3}'.format(timestr, i + 1, j + 1, batch_loss))
 
-                if monitor and i + j > 0:
-                    (x_min, x_max) = (0, i * batch_num + j + 1)
-                    (y_min, y_max) = (0, np.max(losses) + 1)
-                    plt.xlim(x_min, x_max)
-                    plt.ylim(y_min, y_max)
-
-                    this_x = i * batch_num + j
-                    plt.plot([this_x - 1, this_x], [losses[this_x - 1], batch_loss], 'g-', lw=1)
+                if monitor:
+                    if len(train_losses) > 1:
+                        (x_min, x_max) = (0, i * batch_num + j + 1)
+                        (y_min, y_max) = (0, np.max(train_losses) + 1)
+                        plt.xlim(x_min, x_max)
+                        plt.ylim(y_min, y_max)
+                        this_x = i * batch_num + j
+                        plt.plot([this_x - 1, this_x],
+                                 [train_losses[-2], train_losses[-1]], 'g-', lw=1, label='train')
                     plt.pause(0.001)
+                updates_count += 1
+
+            if epoch_end_callback and callable(epoch_end_callback):
+                epoch_end_callback()
 
         if monitor:
             plt.savefig('train.png')
 
-        return np.asarray(losses).reshape(epoch, batch_num)
+        return np.asarray(train_losses).reshape(epoch, batch_num)
