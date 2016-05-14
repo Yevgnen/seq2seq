@@ -89,12 +89,6 @@ class Encoder(Sequential):
         (H, C) = self.lstm.forward(emb, mask)
         return (H[-1], C[-1])
 
-    def forward2(self, batch):
-        # ``batch`` is a matrix whose row ``x`` is a sentence, e.g. x = [1, 4, 5, 2, 0]
-        emb = self.embedding.forward(batch)  # ``emb`` is a list of embedding matrix, e[i].shape = (sene_size, embedding_size)
-        (H, C) = self.lstm.forward2(emb)
-        return (H[-1], C[-1])
-
 
 class Decoder(Sequential):
     def __init__(self, vocab_size, embedding_size, hidden_size, output_size):
