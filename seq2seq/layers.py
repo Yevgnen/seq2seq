@@ -22,9 +22,6 @@ class Layer(object):
     def forward(self):
         raise NotImplementedError
 
-    def backward(self):
-        raise NotImplementedError
-
 
 class FullConnected(Layer):
     def __init__(self, input_size, output_size, activation='tanh', regularizer='l2'):
@@ -51,25 +48,34 @@ class FullConnected(Layer):
         return self.activation(sum)
 
 
+class Embedding(FullConnected):
+    def __init__(self, vocab_size, output_size, activation='tanh'):
+        super(Embedding, self).__init__(vocab_size, output_size, activation)
+
+    def forward(self, X):
+        return self.activation(self.W[:, X].T + self.b)
+
+
+class TimeDistributed(FullConnected):
+    def __init__(self, input_size, output_size, activation='softmax'):
+        super(TimeDistributed, self).__init__(input_size, output_size, activation)
+
+
 class LSTM(Layer):
-    def __init__(self, vocab_size, hidden_size, activation='softmax'):
-        self.vocab_size = vocab_size
+    def __init__(self, input_size, hidden_size):
+        self.input_size = input_size
         self.hidden_size = hidden_size
 
-        param_names = ['Wz', 'Wi', 'Wf', 'Wo', 'Rz', 'Ri', 'Rf', 'Ro', 'pi', 'pf', 'po', 'bz', 'bi', 'bf', 'bo', 'V', 'c']
+        param_names = ['Wz', 'Wi', 'Wf', 'Wo', 'Rz', 'Ri', 'Rf', 'Ro', 'pi', 'pf', 'po', 'bz', 'bi', 'bf', 'bo']
         params = []
 
         for param_name in param_names:
             prefix = param_name[0]
             # Determine param shape
             if prefix == 'W':
-                shape = (hidden_size, vocab_size)
+                shape = (hidden_size, input_size)
             elif prefix == 'R':
                 shape = (hidden_size, hidden_size)
-            elif prefix == 'V':
-                shape = (vocab_size, hidden_size)
-            elif prefix == 'c':
-                shape = (vocab_size,)
             else:
                 shape = (hidden_size,)
 
@@ -88,46 +94,59 @@ class LSTM(Layer):
             setattr(self, param_name, param)
         self.params = params
 
-        self.activation = ACTIVATION[activation]
+    def _stack(self):
+        return (T.concatenate([self.Wz, self.Wi, self.Wf, self.Wo]),
+                T.concatenate([self.Rz, self.Ri, self.Rf, self.Ro]))
 
-    def time_step(self, x, y, prev_h, prev_c):
+    def _slice(self, M):
+        return np.asarray([M[:, i * self.hidden_size: (i + 1) * self.hidden_size] for i in range(4)])
+
+    def step(self, batch, mask, prev_h, prev_c):
+        """Forward a time step of minibatch.
+
+        Reference: [1] LSTM: A Search Space Odyssey, Klaus Greff, Rupesh Kumar Srivastava, Jan Koutník,
+                       Bas R. Steunebrink, Jürgen Schmidhuber, http://arxiv.org/abs/1503.04069
+        """
+        # Stack the weigth for fast matrix multiplication
+        (W, R) = self._stack()
+        Wx = T.dot(batch, W.T)
+        Rh = T.dot(prev_h, R.T)
+
+        Wxs = self._slice(Wx)
+        Rhs = self._slice(Rh)
+
         # Block input
-        zbar = T.dot(x, self.Wz.T) + T.dot(prev_h, self.Rz.T) + self.bz
-        z = T.tanh(zbar)
+        z = T.tanh(Wxs[0] + Rhs[0] + self.bz)
 
         # Input gate
-        ibar = T.dot(x, self.Wi.T) + T.dot(prev_h, self.Ri.T) + self.pi * prev_c + self.bi
-        i = T.nnet.sigmoid(ibar)
+        i = T.nnet.sigmoid(Wxs[1] + Rhs[1] + self.pi * prev_c + self.bi)
 
         # Forget gate
-        fbar = T.dot(x, self.Wf.T) + T.dot(prev_h, self.Rf.T) + self.pf * prev_c + self.bf
-        f = T.nnet.sigmoid(fbar)
+        f = T.nnet.sigmoid(Wxs[2] + Rhs[2] + self.pf * prev_c + self.bf)
 
         # Cell
         c = z * i + prev_c * f
-        a = T.tanh(c)
 
         # Output gate
-        obar = T.dot(x, self.Wo.T) + T.dot(prev_h, self.Ro.T) + self.po * c + self.bo
-        o = T.nnet.sigmoid(obar)
+        o = T.nnet.sigmoid(Wxs[3] + Rhs[3] + self.po * c + self.bo)
 
         # Block output
-        # The origin paper `LSTM: A Search Space Odyssey` use ``y`` to denote block output, but here use ``h`` instead.
-        h = a * o
+        h = T.tanh(c) * o
 
-        tilde_a = T.dot(h, self.V.T)
-        y = self.activation(tilde_a)[0]  # T.nnet.softmax returns a 2D matrix
+        c = mask[:, np.newaxis] * c + (1 - mask[:, np.newaxis]) * prev_c
+        h = mask[:, np.newaxis] * h + (1 - mask[:, np.newaxis]) * prev_h
 
-        return (y, h, c)
+        return (h, c)
 
-    def forward(self, x):
-        ((Y, H, C), _) = theano.scan(
-            fn=self.time_step,
+    def forward(self, batch, mask):
+        (sens_size, batch_size, embedding_size) = T.shape(batch)
+
+        ((H, C), _) = theano.scan(
+            fn=self.step,
             outputs_info=[
-                dict(initial=np.zeros(self.vocab_size)),
-                dict(initial=np.zeros(self.hidden_size), taps=[-1]),
-                dict(initial=np.zeros(self.hidden_size), taps=[-1])],
-            sequences=[x]
+                dict(initial=T.zeros((batch_size, self.hidden_size)), taps=[-1]),
+                dict(initial=T.zeros((batch_size, self.hidden_size)), taps=[-1])],
+            sequences=[batch, mask]
         )
 
-        return (Y, H, C)
+        return (H, C)
