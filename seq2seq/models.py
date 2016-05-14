@@ -246,7 +246,7 @@ class Seq2seq(Model):
 
         if monitor:
             plt.figure(figsize=(6, 4))
-            plt.xlabel('Update count')
+            plt.xlabel('Update')
             plt.ylabel('Loss')
             plt.title('Monitoring')
 
