@@ -12,6 +12,8 @@
 #+SELECT_TAGS: export
 
 * Long short-term memory(LSTM)/Encoder-Decoder Scheme
+** Scheme
+[[file:scheme.png][Encoder-Decoder Scheme]]
 * References
 1. Ilya Sutskever, Oriol Vinyals, Quoc V. Le, Sequence to Sequence Learning with Neural Networks, https://papers.nips.cc/paper/5346-sequence-to-sequence-learning-with-neural-networks.pdf
 2. Deep Learning, Ian Goodfellow, Yoshua Bengio and Aaron Courville, P385, http://www.deeplearningbook.org
