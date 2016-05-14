@@ -53,15 +53,20 @@ class SGD(Optimizer):
 
 
 class RMSprop(Optimizer):
-    def __init__(self, clip=0.0, lr=0.001, gamma=0.9, eps=1e-8):
+    def __init__(self, clip=0.0, lr=0.001, decay=0.0, gamma=0.9, eps=1e-8):
         super(RMSprop, self).__init__(clip=clip)
         self.lr = shared(lr, name='lr')
+        self.decay = decay
         self.gamma = gamma
         self.eps = eps
 
     def get_updates(self, loss, params):
         # gradients
         grads = self.get_gradients(loss, params)
+
+        # update learning rate
+        lr = self.lr * (1. / (1. + self.decay * self.iterations))
+        self.updates.append((self.lr, lr))
 
         self.gradients = [shared(value=np.zeros_like(param.get_value(borrow=True))) for param in params]
         for p, g, h in zip(params, grads, self.gradients):
@@ -75,14 +80,19 @@ class RMSprop(Optimizer):
 
 
 class AdaGrad(Optimizer):
-    def __init__(self, clip=0.0, lr=0.01, eps=1e-8):
+    def __init__(self, clip=0.0, lr=0.01, decay=0.0, eps=1e-8):
         super(AdaGrad, self).__init__(clip=clip)
         self.lr = shared(lr, name='lr')
+        self.decay = decay
         self.eps = eps
 
     def get_updates(self, loss, params):
         # gradients
         grads = self.get_gradients(loss, params)
+
+        # update learning rate
+        lr = self.lr * (1. / (1. + self.decay * self.iterations))
+        self.updates.append((self.lr, lr))
 
         self.gradients = [shared(value=np.zeros_like(param.get_value(borrow=True))) for param in params]
         for p, g, h in zip(params, grads, self.gradients):
