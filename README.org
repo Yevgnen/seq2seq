@@ -11,7 +11,7 @@
 #+LANGUAGE: en
 #+SELECT_TAGS: export
 
-* Long short-term memory(LSTM)/Encoder-Decoder Scheme
+* LSTM Encoder-Decoder/Sequence to Sequence Learning
 ** Scheme
 #+CAPTION: The encoder-decoder scheme (source: [[http://qiita.com/odashi_t/items/a1be7c4964fbea6a116e#fnref3][ChainerとRNNと機械翻訳]])
 #+NAME: scheme
