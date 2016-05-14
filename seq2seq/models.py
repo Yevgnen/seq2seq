@@ -11,15 +11,16 @@ from matplotlib import pyplot as plt
 
 from layers import LSTM, Embedding, TimeDistributed
 from optimizer import SGD, RMSprop
+from utils import get_logger
 
 
 class Model(object):
-    def __init__(self, logger=logging.getLogger(__name__)):
+    def __init__(self, logger=get_logger()):
         self.logger = logger
 
 
 class Sequential(Model):
-    def __init__(self, layers, loss='cross_entropy', optimizer=SGD(), logger=logging.getLogger(__name__)):
+    def __init__(self, layers, loss='cross_entropy', optimizer=SGD(), logger=get_logger()):
         super(Sequential, self).__init__(logger)
         self.layers = layers
         self.params = list(itertools.chain(*[layer.params for layer in layers]))
@@ -147,7 +148,7 @@ class Decoder(Sequential):
 class Seq2seq(Model):
     def __init__(self, encoder_vocab_size, encoder_embedding_size, encoder_hidden_size,
                  decoder_vocab_size, decoder_embedding_size, decoder_hidden_size, decoder_output_size,
-                 optimizer=RMSprop(), logger=logging.getLogger(__name__)):
+                 optimizer=RMSprop(), logger=get_logger()):
         super(Seq2seq, self).__init__(logger)
         self.encoder_vocab_size = encoder_vocab_size
         self.encoder_embedding_size = encoder_embedding_size
