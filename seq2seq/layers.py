@@ -86,6 +86,8 @@ class LSTM(Layer):
                     high=np.sqrt(1. / shape[1]),
                     size=shape), dtype=theano.config.floatX)
             # Init biases
+            elif param_name == 'bf':
+                param_value = np.ones(shape)
             else:
                 param_value = np.zeros(shape)
 
