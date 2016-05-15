@@ -6,12 +6,15 @@ import logging
 from numpy import random as rng
 
 from loader import load_data
-from seq2seq.models import Seq2seq
-from seq2seq.optimizer import RMSprop
+from seq2seq.models import Decoder, Encoder, Seq2seq
+from seq2seq.optimizer import SGD, RMSprop
 from seq2seq.utils import get_logger
 
+# start
 logger = get_logger()
 logger.info('--------------- Encoder - Decoder ---------------')
+
+# load data
 logger.info('loading data...')
 (train_x, test_x,
  train_y, test_y,
@@ -25,21 +28,27 @@ logger.info('loaded training source senstences: {0}, max length: {1}, vocabulary
 logger.info('loaded training target senstences: {0}, max length: {1}, vocabulary size: {2}'.format(
     len(train_y.get_value(borrow=True)), len(mask_train_y.get_value(borrow=True)), len(list(dest_word2index))))
 
+# encoder
 encoder_vocab_size = len(src_word2index)
 encoder_embedding_size = 100
 encoder_hidden_size = 50
+encoder = Encoder(encoder_vocab_size, encoder_embedding_size, encoder_hidden_size)
 
+# decoder
 decoder_vocab_size = len(dest_word2index)
 decoder_embedding_size = 100
 decoder_hidden_size = 50
 decoder_output_size = 100
+decoder = Decoder(decoder_vocab_size, decoder_embedding_size, decoder_hidden_size, decoder_output_size)
 
-model = Seq2seq(encoder_vocab_size, encoder_embedding_size, encoder_hidden_size,
-                decoder_vocab_size, decoder_embedding_size, decoder_hidden_size, decoder_output_size,
-                RMSprop(clip=5.0, lr=0.01, gamma=0.9, eps=1e-8),
+# Sequential to sequential learning model
+model = Seq2seq(encoder, decoder,
+                # RMSprop(clip=5.0, lr=0.003, gamma=0.9, eps=1e-8),
+                SGD(clip=0.5, lr=0.5),
                 logger=logger)
 
 
+# training
 def epoch_end_callback():
     logger.info('sampling...')
     sample_size = 5
@@ -58,12 +67,13 @@ def epoch_end_callback():
         logger.info('-------------------------------------------------')
 
 logger.info('training...')
-epoch = 200
-batch_size = 40
+epoch = 600
+batch_size = 100
 model.train(train_x, mask_train_x, train_y, mask_train_y,
             epoch=epoch, batch_size=batch_size, monitor=True,
             epoch_end_callback=epoch_end_callback)
 
+# predicting
 predict = model.predict(test_x, mask_test_x, test_y, mask_test_y)
 logger.info('predicting...')
 for (source, predict, target) in zip(test_x.get_value(borrow=True), predict.eval(), test_y.get_value(borrow=True)):

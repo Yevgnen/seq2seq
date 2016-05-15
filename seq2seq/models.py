@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import itertools
-import logging
 
 import numpy as np
 import theano
@@ -146,20 +145,10 @@ class Decoder(Sequential):
 
 
 class Seq2seq(Model):
-    def __init__(self, encoder_vocab_size, encoder_embedding_size, encoder_hidden_size,
-                 decoder_vocab_size, decoder_embedding_size, decoder_hidden_size, decoder_output_size,
-                 optimizer=RMSprop(), logger=get_logger()):
+    def __init__(self, encoder, decoder, optimizer=RMSprop(), logger=get_logger()):
         super(Seq2seq, self).__init__(logger)
-        self.encoder_vocab_size = encoder_vocab_size
-        self.encoder_embedding_size = encoder_embedding_size
-        self.encoder_hidden_size = encoder_hidden_size
-
-        self.decoder_embedding_size = decoder_embedding_size
-        self.decoder_hidden_size = decoder_hidden_size
-        self.decoder_outout_size = decoder_output_size
-
-        self.encoder = Encoder(encoder_vocab_size, encoder_embedding_size, encoder_hidden_size)
-        self.decoder = Decoder(decoder_vocab_size, decoder_embedding_size, decoder_hidden_size, decoder_output_size)
+        self.encoder = encoder
+        self.decoder = decoder
 
         self.optimizer = optimizer
 
