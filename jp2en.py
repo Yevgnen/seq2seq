@@ -15,13 +15,16 @@ logger = get_logger()
 logger.info('--------------- Encoder - Decoder ---------------')
 
 # load data
+src_vocab_size = 5000
+dest_vocab_size = 5000
 logger.info('loading data...')
 (train_x, test_x,
  train_y, test_y,
  mask_train_x, mask_test_x,
  mask_train_y, mask_test_y,
  src_index2word, src_word2index,
- dest_index2word, dest_word2index) = load_data('data/train2000.ja', 'data/train2000.en', train_size=0.8)
+ dest_index2word, dest_word2index) = load_data('data/train2000.ja', 'data/train2000.en',
+                                               src_vocab_size, dest_vocab_size, train_size=0.8)
 
 logger.info('loaded training source senstences: {0}, max length: {1}, vocabulary size: {2}'.format(
     len(train_x.get_value(borrow=True)), len(mask_train_x.get_value(borrow=True)), len(list(src_word2index))))

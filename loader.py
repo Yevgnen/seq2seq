@@ -4,6 +4,8 @@ import codecs
 import itertools
 import re
 
+import nltk
+from numpy import random as rng
 from sklearn.cross_validation import train_test_split
 from theano import shared
 
@@ -32,37 +34,38 @@ def read_file(file):
     return sentences
 
 
-def _load_data(path, delimiters, pad_char='_'):
+def _load_data(path, delimiters, word_limit, pad_char='_', unknown_token='<U>'):
     sens = read_file(path)
     sens = [re.split('|'.join(delimiters), s) for s in sens]
 
-    words = set(itertools.chain(*sens))
+    word_freq = nltk.FreqDist(itertools.chain(*sens))
+    words = word_freq.most_common(word_limit)
+    words = [word[0] for word in words]
+    words = [pad_char, unknown_token] + words
 
-    index2word = dict((i + 1, w) for (i, w) in enumerate(list(words)))
-    word2index = dict((w, i + 1) for (i, w) in enumerate(list(words)))
-    index2word[0] = pad_char
-    word2index[pad_char] = 0
+    index2word = dict((i, w) for (i, w) in enumerate(words))
+    word2index = dict((w, i) for (i, w) in enumerate(words))
 
-    sens_in_index = [[word2index[w] for w in s] for s in sens]
+    sens_in_index = [[word2index[w] if w in word2index else word2index[unknown_token] for w in s] for s in sens]
 
     return (sens_in_index, index2word, word2index)
 
 
-def load_data(src_path, dest_path, train_size=0.8, valid_size=0):
+def load_data(src_path, dest_path, src_word_limit, dest_word_limit, train_size=0.8, valid_size=0):
     src_delimiters = [' ']
     dest_delimiters = [' ']
 
     (src_sens_in_index, src_index2word, src_word2index) = _load_data(
-        src_path, src_delimiters)
+        src_path, src_delimiters, src_word_limit)
     (dest_sens_in_index, dest_index2word, dest_word2index) = _load_data(
-        dest_path, dest_delimiters)
+        dest_path, dest_delimiters, dest_word_limit)
 
     (train_x, test_x, train_y, test_y) = train_test_split(
-        src_sens_in_index, dest_sens_in_index, train_size=0.8)
+        src_sens_in_index, dest_sens_in_index, train_size=0.8, random_state=rng.randint(10000))
 
     if valid_size > 0:
         (train_x, valid_x, train_y, valid_y) = train_test_split(
-            train_x, train_y, train_size=1 - valid_size)
+            train_x, train_y, train_size=1 - valid_size, random_state=rng.randint(10000))
 
     mask_train_x = masking(train_x)
     mask_test_x = masking(test_x)
