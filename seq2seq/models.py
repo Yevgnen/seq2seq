@@ -80,17 +80,20 @@ class Sequential(Model):
             valid_acc_fn = theano.function([], self.score(valid_x, valid_y))
             valid_batch_num = int(np.ceil(valid_x.get_value(borrow=True).shape[0] / batch_size))
             valid_losses = []
+            valid_acces = []
             best_valid_loss = np.inf
             p = 0
         else:
             valid = False
             valid_losses = None
+            valid_acces = None
 
         # Initialization for monitor
         if monitoring:
-            m = Monitor()
+            m = Monitor(monitor_acc=False)
 
         train_losses = []
+        train_acces = []
         stop = False
         iterations = epoch * train_batch_num
         for iter in range(iterations):
@@ -108,7 +111,9 @@ class Sequential(Model):
                 valid_losses.append(valid_loss)
 
                 train_acc = train_acc_fn()
+                train_acces.append(train_acc)
                 valid_acc = valid_acc_fn()
+                valid_acces.append(valid_acc)
                 self.logger.info('VALIDATING - Iteration ({0}), valid loss: {1}'.format(iter, valid_loss))
                 self.logger.info('VALIDATING - Iteration ({0}), train acc: {1}'.format(iter, train_acc))
                 self.logger.info('VALIDATING - Iteration ({0}), valid acc: {1}'.format(iter, valid_acc))
@@ -123,7 +128,7 @@ class Sequential(Model):
                         stop = True
 
             if monitoring:
-                m.update(train_losses, valid_losses, valid_freq)
+                m.update(train_losses, valid_losses, valid_freq, train_acces, valid_acces)
 
             if stop:
                 break
