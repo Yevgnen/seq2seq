@@ -9,8 +9,14 @@ import theano
 import theano.tensor as T
 from numpy import random as rng
 from theano import shared
+from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
-ACTIVATION = {'tanh': T.tanh, 'sigmoid': T.nnet.sigmoid, 'softmax': T.nnet.softmax, 'relu': T.nnet.relu}
+ACTIVATION = {
+    'tanh': T.tanh,
+    'sigmoid': T.nnet.sigmoid,
+    'softmax': T.nnet.softmax,
+    'relu': T.nnet.relu
+}
 
 
 class Layer(object):
@@ -144,3 +150,29 @@ class LSTM(Layer):
         )
 
         return (H, C)
+
+
+class Dropout(Layer):
+    def __init__(self, p=0.0):
+        self.p = p
+
+    def forward(self, X):
+        if (0.0 < self.p < 1.0):
+            X = dropout(X, self.p)
+        return X
+
+
+def dropout(X, p, seed=None):
+    if p < 0.0 or p >= 1:
+        raise Exception('Dropout level must be 0 <= p < 1.')
+
+    if seed is None:
+        seed = rng.randint(1e6)
+
+    retain_prob = 1.0 - p
+    rs = RandomStreams(seed=seed)
+
+    X *= rs.binomial(X.shape, p=retain_prob, dtype=X.dtype)
+    X /= retain_prob
+
+    return X
