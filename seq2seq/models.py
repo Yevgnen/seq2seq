@@ -31,49 +31,87 @@ class Sequential(Model):
         return x
 
     def predict(self, test_x):
-        x = T.matrix('x', dtype=test_x.dtype)
-        prediction = np.argmax(self.forward(x), axis=1)
-
-        predict_fn = theano.function(
-            inputs=[x],
-            outputs=prediction
-        )
-
-        return predict_fn(test_x)
+        return T.argmax(self.forward(test_x), axis=1)
 
     def score(self, test_x, test_y):
-        return np.mean(np.equal(self.predict(test_x), test_y))
+        return T.mean(T.eq(self.predict(test_x), test_y))
 
     def loss(self, x, y):
         x = self.forward(x)
         return -T.mean(T.sum(T.log(x)[T.arange(y.shape[0]), y]))
 
-    def train(self, train_x, train_y, epoch=10, batch_size=128, valid_x=None, valid_y=None):
-        sample_num = train_x.get_value(borrow=True).shape[0]
+    def train(self, train_x, train_y, epoch=100, batch_size=128,
+              validation_data=None, valid_freq=100, patience=10):
 
         batch_index = T.iscalar('batch_index')
-        batch_num = int(np.ceil(sample_num / batch_size))
-
         x = T.matrix('x', dtype=train_x.get_value(borrow=True).dtype)
         y = T.vector('y', dtype=train_y.get_value(borrow=True).dtype)
-
         loss = self.loss(x, y)
-
         updates = self.optimizer.get_updates(loss, self.params)
 
-        train_model = theano.function(
+        sample_num = train_x.get_value(borrow=True).shape[0]
+        train_batch_num = int(np.ceil(sample_num / batch_size))
+        train_fn = theano.function(
             inputs=[batch_index],
             outputs=loss,
             updates=updates,
-            givens=[
-                (x, train_x[batch_index * batch_size: (batch_index + 1) * batch_size]),
-                (y, train_y[batch_index * batch_size: (batch_index + 1) * batch_size])]
+            givens={
+                x: train_x[batch_index * batch_size: (batch_index + 1) * batch_size],
+                y: train_y[batch_index * batch_size: (batch_index + 1) * batch_size]
+            }
         )
+        train_acc_fn = theano.function([], self.score(train_x, train_y))
 
-        for i in range(epoch):
-            for j in range(batch_num):
-                batch_loss = train_model(j)
-                self.logger.info('TRAINING - epoch: {0:3d}, batch: {1:3d}, loss: {2}'.format(i + 1, j + 1, batch_loss))
+        if validation_data is not None:
+            valid = True
+            (valid_x, valid_y) = validation_data
+            valid_fn = theano.function(
+                inputs=[batch_index],
+                outputs=loss,
+                updates=updates,
+                givens={
+                    x: valid_x[batch_index * batch_size: (batch_index + 1) * batch_size],
+                    y: valid_y[batch_index * batch_size: (batch_index + 1) * batch_size]
+                }
+            )
+            valid_acc_fn = theano.function([], self.score(valid_x, valid_y))
+            valid_batch_num = int(np.ceil(valid_x.get_value(borrow=True).shape[0] / batch_size))
+            valid_losses = []
+            best_valid_loss = np.inf
+            p = 0
+        else:
+            valid = False
+
+        train_losses = []
+        stop = False
+        iterations = epoch * train_batch_num
+        for iter in range(iterations):
+            i = int(iter / train_batch_num)  # current epoch
+            j = iter % train_batch_num       # batch_index
+
+            train_loss = train_fn(j)
+            train_losses.append(train_loss)
+            self.logger.info('TRAINING - Epoch({0:4d} / {1:4d}), train loss: {2}'.format(i + 1, epoch, train_loss))
+
+            if valid and iter % valid_freq == 0:
+                valid_loss = np.mean([valid_fn(k) for k in range(valid_batch_num)])
+                valid_losses.append(valid_loss)
+
+                train_acc = train_acc_fn()
+                valid_acc = valid_acc_fn()
+                self.logger.info('VALIDATING - Iteration ({0}), valid loss: {1}'.format(iter, valid_loss))
+                self.logger.info('VALIDATING - Iteration ({0}), train acc: {1}'.format(iter, train_acc))
+                self.logger.info('VALIDATING - Iteration ({0}), valid acc: {1}'.format(iter, valid_acc))
+
+                if valid_loss < best_valid_loss:
+                    best_valid_loss = valid_loss
+                    p = 0
+                else:
+                    p += 1
+                    if p >= patience:
+                        stop = True
+            if stop:
+                break
         return
 
 
