@@ -122,3 +122,4 @@ ENV/
 .ropeproject
 
 train.png
+data/mnist
