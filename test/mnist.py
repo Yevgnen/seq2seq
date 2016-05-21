@@ -39,8 +39,9 @@ model = Sequential(
     optimizer=SGD(lr=0.0001, decay=.001, momentum=0.9)
 )
 
-model.train(train_x, train_y, epoch=1000, batch_size=500,
-            validation_data=(valid_x, valid_y), valid_freq=5)
+model.train(train_x, train_y, epoch=100, batch_size=1437,
+            validation_data=(valid_x, valid_y), valid_freq=5, patience=10,
+            monitoring=True)
 
 score = model.score(test_x, test_y)
 print('test score: {0}'.format(score.eval()))

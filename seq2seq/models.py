@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 
 from layers import LSTM, Embedding, TimeDistributed
 from optimizer import SGD, RMSprop
-from utils import get_logger
+from utils import Monitor, get_logger
 
 
 class Model(object):
@@ -41,8 +41,10 @@ class Sequential(Model):
         return -T.mean(T.sum(T.log(x)[T.arange(y.shape[0]), y]))
 
     def train(self, train_x, train_y, epoch=100, batch_size=128,
-              validation_data=None, valid_freq=100, patience=10):
+              validation_data=None, valid_freq=100, patience=10,
+              monitoring=False):
 
+        # Define the symbolic train model
         batch_index = T.iscalar('batch_index')
         x = T.matrix('x', dtype=train_x.get_value(borrow=True).dtype)
         y = T.vector('y', dtype=train_y.get_value(borrow=True).dtype)
@@ -62,6 +64,7 @@ class Sequential(Model):
         )
         train_acc_fn = theano.function([], self.score(train_x, train_y))
 
+        # Initialization for validation
         if validation_data is not None:
             valid = True
             (valid_x, valid_y) = validation_data
@@ -81,6 +84,11 @@ class Sequential(Model):
             p = 0
         else:
             valid = False
+            valid_losses = None
+
+        # Initialization for monitor
+        if monitoring:
+            m = Monitor()
 
         train_losses = []
         stop = False
@@ -89,10 +97,12 @@ class Sequential(Model):
             i = int(iter / train_batch_num)  # current epoch
             j = iter % train_batch_num       # batch_index
 
+            # Train on a batch
             train_loss = train_fn(j)
             train_losses.append(train_loss)
             self.logger.info('TRAINING - Epoch({0:4d} / {1:4d}), train loss: {2}'.format(i + 1, epoch, train_loss))
 
+            # Validating
             if valid and iter % valid_freq == 0:
                 valid_loss = np.mean([valid_fn(k) for k in range(valid_batch_num)])
                 valid_losses.append(valid_loss)
@@ -103,6 +113,7 @@ class Sequential(Model):
                 self.logger.info('VALIDATING - Iteration ({0}), train acc: {1}'.format(iter, train_acc))
                 self.logger.info('VALIDATING - Iteration ({0}), valid acc: {1}'.format(iter, valid_acc))
 
+                # Be patient if get lower validation losss
                 if valid_loss < best_valid_loss:
                     best_valid_loss = valid_loss
                     p = 0
@@ -110,9 +121,15 @@ class Sequential(Model):
                     p += 1
                     if p >= patience:
                         stop = True
+
+            if monitoring:
+                m.update(train_losses, valid_losses, valid_freq)
+
             if stop:
                 break
-        return
+
+        if monitoring:
+            m.save()
 
 
 class Encoder(Sequential):
