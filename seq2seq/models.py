@@ -31,7 +31,7 @@ class Sequential(Model):
         return x
 
     def predict(self, test_x):
-        x = T.dmatrix('x')
+        x = T.matrix('x', dtype=test_x.dtype)
         prediction = np.argmax(self.forward(x), axis=1)
 
         predict_fn = theano.function(
@@ -48,14 +48,14 @@ class Sequential(Model):
         x = self.forward(x)
         return -T.mean(T.sum(T.log(x)[T.arange(y.shape[0]), y]))
 
-    def train(self, train_set_x, train_set_y, epoch=10, batch_size=128, valid_x=None, valid_y=None):
-        sample_num = train_set_x.get_value(borrow=True).shape[0]
+    def train(self, train_x, train_y, epoch=10, batch_size=128, valid_x=None, valid_y=None):
+        sample_num = train_x.get_value(borrow=True).shape[0]
 
         batch_index = T.iscalar('batch_index')
-        batch_num = sample_num // batch_size
+        batch_num = int(np.ceil(sample_num / batch_size))
 
-        x = T.dmatrix('x')
-        y = T.ivector('y')
+        x = T.matrix('x', dtype=train_x.get_value(borrow=True).dtype)
+        y = T.vector('y', dtype=train_y.get_value(borrow=True).dtype)
 
         loss = self.loss(x, y)
 
@@ -66,8 +66,8 @@ class Sequential(Model):
             outputs=loss,
             updates=updates,
             givens=[
-                (x, train_set_x[batch_index * batch_size: (batch_index + 1) * batch_size]),
-                (y, train_set_y[batch_index * batch_size: (batch_index + 1) * batch_size])]
+                (x, train_x[batch_index * batch_size: (batch_index + 1) * batch_size]),
+                (y, train_y[batch_index * batch_size: (batch_index + 1) * batch_size])]
         )
 
         for i in range(epoch):
