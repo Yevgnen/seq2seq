@@ -90,7 +90,7 @@ class Sequential(Model):
 
         # Initialization for monitor
         if monitoring:
-            m = Monitor(monitor_acc=False)
+            m = Monitor(monitor_acc=True)
 
         train_losses = []
         train_acces = []
