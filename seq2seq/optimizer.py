@@ -14,7 +14,7 @@ class Optimizer(object):
         self.clip = clip
 
     def get_gradients(self, loss, params):
-        grads = [T.grad(loss, param) for param in params]
+        grads = T.grad(cost=loss, wrt=params)
         if self.clip and self.clip > 0:
             grads = self.clipping(grads)
         return grads

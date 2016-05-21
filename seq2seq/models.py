@@ -22,7 +22,7 @@ class Sequential(Model):
     def __init__(self, layers, loss='cross_entropy', optimizer=SGD(), logger=get_logger()):
         super(Sequential, self).__init__(logger)
         self.layers = layers
-        self.params = list(itertools.chain(*[layer.params for layer in layers]))
+        self.params = list(itertools.chain(*[layer.params for layer in layers if hasattr(layer, 'params')]))
         self.optimizer = optimizer
 
     def forward(self, x):
@@ -86,7 +86,7 @@ class Encoder(Sequential):
         self.embedding = Embedding(vocab_size, embedding_size)
         self.lstm = LSTM(embedding_size, hidden_size)
         self.layers = [self.embedding, self.lstm]
-        self.params = list(itertools.chain(*[layer.params for layer in self.layers]))
+        self.params = list(itertools.chain(*[layer.params for layer in self.layers if hasattr(layer, 'params')]))
 
     def forward(self, batch, mask):
         # ``batch`` is a matrix whose row ``x`` is a sentence, e.g. x = [1, 4, 5, 2, 0]
@@ -109,7 +109,7 @@ class Decoder(Sequential):
         self.embedding = Embedding(vocab_size, embedding_size)
 
         self.layers = [self.lstm, self.lstm_output, self.softmax, self.embedding]
-        self.params = list(itertools.chain(*[layer.params for layer in self.layers]))
+        self.params = list(itertools.chain(*[layer.params for layer in self.layers if hasattr(layer, 'params')]))
 
     def forward(self, ec_H, ec_C, mask):
         (sens_size, batch_size) = T.shape(mask)
