@@ -8,14 +8,16 @@ from sklearn import datasets
 from sklearn.cross_validation import train_test_split
 from theano import shared
 
-from seq2seq.layers import FullConnected
-from seq2seq.models import Sequential
-from seq2seq.optimizer import SGD
+from layers import FullConnected
+from models import Sequential
+from optimizer import SGD
 
 
 def load_data(datasets, test=0.2, valid=0.0):
     (all_x, all_y) = (dataset.data, np.asarray(dataset.target, dtype=np.int32))
+    all_x /= 16
     (train_x, test_x, train_y, test_y) = train_test_split(all_x, all_y, train_size=1 - test)
+
     if valid > 0:
         (train_x, valid_x, train_y, valid_y) = train_test_split(all_x, all_y, train_size=1 - valid)
         return (shared(train_x, borrow=True),
