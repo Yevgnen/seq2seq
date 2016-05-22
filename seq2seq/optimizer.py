@@ -124,8 +124,7 @@ class AdaDelta(Optimizer):
 
         # update learning rate
         lr = self.lr * (1. / (1. + self.decay * self.iterations))
-        llr = theano.printing.Print('--> ')(lr)
-        self.updates.append((self.lr, llr))
+        self.updates.append((self.lr, lr))
 
         self.gradients = [shared(value=np.zeros_like(param.get_value(borrow=True))) for param in params]
         self.averages = [shared(value=np.zeros_like(param.get_value(borrow=True))) for param in params]

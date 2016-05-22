@@ -98,7 +98,7 @@ class Monitor(object):
             self.acc_ax.set_ylim(0, 1)
 
         self.figure.canvas.draw()
-        plt.pause(0.001)
+        plt.pause(0.00001)
 
     def save(self):
         self.figure.savefig('figure.png')

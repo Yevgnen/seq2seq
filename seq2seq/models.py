@@ -81,7 +81,7 @@ class Sequential(Model):
             valid_batch_num = int(np.ceil(valid_x.get_value(borrow=True).shape[0] / batch_size))
             valid_losses = []
             valid_acces = []
-            best_valid_loss = np.inf
+            best_valid_acc = 0
             p = 0
         else:
             valid = False
@@ -119,8 +119,8 @@ class Sequential(Model):
                 self.logger.info('VALIDATING - Iteration ({0}), valid acc: {1}'.format(iter, valid_acc))
 
                 # Be patient if get lower validation losss
-                if valid_loss < best_valid_loss:
-                    best_valid_loss = valid_loss
+                if valid_acc > best_valid_acc:
+                    best_valid_acc = valid_acc
                     p = 0
                 else:
                     p += 1
