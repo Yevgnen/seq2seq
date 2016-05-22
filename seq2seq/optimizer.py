@@ -111,8 +111,35 @@ class Adam(Optimizer):
 
 
 class AdaDelta(Optimizer):
-    def __init__(self):
-        return
+    def __init__(self, clip=0.0, lr=0.001, decay=0.0, gamma=0.9, eps=1e-8):
+        super(AdaDelta, self).__init__(clip=clip)
+        self.lr = shared(lr, name='lr')
+        self.decay = decay
+        self.gamma = gamma
+        self.eps = eps
+
+    def get_updates(self, loss, params):
+        # gradients
+        grads = self.get_gradients(loss, params)
+
+        # update learning rate
+        lr = self.lr * (1. / (1. + self.decay * self.iterations))
+        llr = theano.printing.Print('--> ')(lr)
+        self.updates.append((self.lr, llr))
+
+        self.gradients = [shared(value=np.zeros_like(param.get_value(borrow=True))) for param in params]
+        self.averages = [shared(value=np.zeros_like(param.get_value(borrow=True))) for param in params]
+        for p, g, h, x in zip(params, grads, self.gradients, self.averages):
+            new_h = self.gamma * h + (1 - self.gamma) * T.square(g)
+            self.updates.append((h, new_h))
+
+            v = - g * T.sqrt(x + self.eps) / T.sqrt(new_h + self.eps)
+            self.updates.append((x, self.gamma * x + (1 - self.gamma) * T.square(v)))
+
+            new_p = p + v
+            self.updates.append((p, new_p))
+
+        return self.updates
 
 
 class GradientChecking(object):
