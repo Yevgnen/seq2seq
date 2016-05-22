@@ -38,7 +38,7 @@ model = Sequential(
 )
 
 model.train(train_x, train_y, epoch=epoch, batch_size=batch_size,
-            validation_data=(valid_x, valid_y), valid_freq=20, monitoring=True)
+            validation_data=(valid_x, valid_y), valid_freq=20, monitor=True)
 
 score = model.score(test_x, test_y)
 print('test score: {0}'.format(score.eval()))

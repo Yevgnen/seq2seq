@@ -42,7 +42,7 @@ class Sequential(Model):
 
     def train(self, train_x, train_y, epoch=100, batch_size=128,
               validation_data=None, valid_freq=100, patience=10,
-              monitoring=False):
+              monitor=False):
 
         # Define the symbolic train model
         batch_index = T.iscalar('batch_index')
@@ -89,7 +89,7 @@ class Sequential(Model):
             valid_acces = None
 
         # Initialization for monitor
-        if monitoring:
+        if monitor:
             m = Monitor(monitor_acc=True)
 
         train_losses = []
@@ -98,7 +98,7 @@ class Sequential(Model):
         iterations = epoch * train_batch_num
         for iter in range(iterations):
             i = int(iter / train_batch_num)  # current epoch
-            j = iter % train_batch_num       # batch_index
+            j = iter % train_batch_num       # batch index
 
             # Train on a batch
             train_loss = train_fn(j)
@@ -127,13 +127,13 @@ class Sequential(Model):
                     if p >= patience:
                         stop = True
 
-            if monitoring:
+            if monitor:
                 m.update(train_losses, valid_losses, valid_freq, train_acces, valid_acces)
 
             if stop:
                 break
 
-        if monitoring:
+        if monitor:
             m.save()
 
 
