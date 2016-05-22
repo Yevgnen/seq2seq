@@ -64,6 +64,7 @@ class Monitor(object):
         plt.xlabel('iteration')
         plt.ylabel('loss')
         plt.legend()
+        plt.grid()
 
         if monitor_acc:
             self.acc_ax = self.figure.add_subplot(1, fig_num, 2)
@@ -73,6 +74,7 @@ class Monitor(object):
             plt.xlabel('iteration')
             plt.ylabel('accuracy')
             plt.legend(loc=4)
+            plt.grid()
 
     def update(self, train_losses, valid_losses=None, valid_freq=0, train_acces=None, valid_acces=None):
         self.train_loss.set_xdata(np.arange(len(train_losses)))
