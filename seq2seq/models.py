@@ -6,7 +6,6 @@ import itertools
 import numpy as np
 import theano
 import theano.tensor as T
-from matplotlib import pyplot as plt
 
 from layers import LSTM, Embedding, TimeDistributed
 from optimizer import SGD, RMSprop
@@ -266,64 +265,97 @@ class Seq2seq(Model):
 
         return loss
 
-    def train(self, train_x, mask_train_x, train_y, mask_train_y, epoch=10, batch_size=128, monitor=False,
-              epoch_end_callback=None):
-        sample_num = train_x.get_value(borrow=True).shape[0]
+    def train(self, train_x, mask_train_x, train_y, mask_train_y, epoch=10, batch_size=128,
+              validation_data=None, valid_freq=100, patience=10,
+              monitor=False, epoch_end_callback=None):
 
+        # Define the symbolic train model
         batch_index = T.iscalar('batch_index')
-        batch_num = int(np.ceil(sample_num / batch_size))
-
         x = T.imatrix('x')
         y = T.imatrix('y')
         m_x = T.imatrix('m_x')
         m_y = T.imatrix('m_y')
-
         loss = self.loss(x, m_x, y, m_y)
-
         updates = self.optimizer.get_updates(loss, self.params)
 
-        train_model = theano.function(
+        sample_num = train_x.get_value(borrow=True).shape[0]
+        train_batch_num = int(np.ceil(sample_num / batch_size))
+        train_fn = theano.function(
             inputs=[batch_index],
             outputs=loss,
             updates=updates,
-            givens=[
-                (x, train_x[batch_index * batch_size: (batch_index + 1) * batch_size]),
-                (y, train_y[batch_index * batch_size: (batch_index + 1) * batch_size]),
-                (m_x, mask_train_x[:, batch_index * batch_size: (batch_index + 1) * batch_size]),
-                (m_y, mask_train_y[:, batch_index * batch_size: (batch_index + 1) * batch_size])
-            ]
+            givens={
+                x: train_x[batch_index * batch_size: (batch_index + 1) * batch_size],
+                y: train_y[batch_index * batch_size: (batch_index + 1) * batch_size],
+                m_x: mask_train_x[:, batch_index * batch_size: (batch_index + 1) * batch_size],
+                m_y: mask_train_y[:, batch_index * batch_size: (batch_index + 1) * batch_size]
+            }
         )
 
+        # Initialization for validation
+        if validation_data is not None:
+            valid = True
+            (valid_x, mask_valid_x, valid_y, mask_valid_y) = validation_data
+            valid_fn = theano.function(
+                inputs=[batch_index],
+                outputs=loss,
+                updates=updates,
+                givens={
+                    x: valid_x[batch_index * batch_size: (batch_index + 1) * batch_size],
+                    y: valid_y[batch_index * batch_size: (batch_index + 1) * batch_size],
+                    m_x: mask_valid_x[:, batch_index * batch_size: (batch_index + 1) * batch_size],
+                    m_y: mask_valid_y[:, batch_index * batch_size: (batch_index + 1) * batch_size]
+                }
+            )
+            valid_losses = []
+            valid_batch_num = int(np.ceil(valid_x.get_value(borrow=True).shape[0] / batch_size))
+            best_valid_loss = np.inf
+            p = 0
+        else:
+            valid = False
+            valid_losses = None
+
+        # Initialization for monitor
         if monitor:
-            plt.figure(figsize=(6, 4))
-            plt.xlabel('Update')
-            plt.ylabel('Loss')
-            plt.title('Monitoring')
+            m = Monitor(monitor_acc=False)
 
         train_losses = []
-        updates_count = 0
-        for i in range(epoch):
-            for j in range(batch_num):
-                batch_loss = train_model(j)
-                train_losses.append(batch_loss)
-                self.logger.info('TRAINING - epoch: {0:3d}, batch: {1:3d}, loss: {2}'.format(i + 1, j + 1, batch_loss))
+        stop = False
+        iterations = epoch * train_batch_num
+        for iter in range(iterations):
+            i = int(iter / train_batch_num)  # current epoch
+            j = iter % train_batch_num       # batch index
 
-                if monitor:
-                    if len(train_losses) > 1:
-                        (x_min, x_max) = (0, i * batch_num + j + 1)
-                        (y_min, y_max) = (0, np.max(train_losses) + 1)
-                        plt.xlim(x_min, x_max)
-                        plt.ylim(y_min, y_max)
-                        this_x = i * batch_num + j
-                        plt.plot([this_x - 1, this_x],
-                                 [train_losses[-2], train_losses[-1]], 'g-', lw=1, label='train')
-                    plt.pause(0.001)
-                updates_count += 1
+            # Train on a batch
+            train_loss = train_fn(j)
+            train_losses.append(train_loss)
+            self.logger.info('TRAINING - Epoch({0:4d} / {1:4d}), train loss: {2}'.format(i + 1, epoch, train_loss))
 
-            if epoch_end_callback and callable(epoch_end_callback):
+            if valid and iter % valid_freq == 0:
+                valid_loss = np.mean([valid_fn(k) for k in range(valid_batch_num)])
+                valid_losses.append(valid_loss)
+
+                self.logger.info('VALIDATING - Iteration ({0}), valid loss: {1}'.format(iter, valid_loss))
+
+                # Be patient if get lower validation losss
+                if valid_loss < best_valid_loss:
+                    best_valid_loss = valid_loss
+                    p = 0
+                else:
+                    p += 1
+                    if p >= patience:
+                        stop = True
+
+            if monitor:
+                m.update(train_losses, valid_losses, valid_freq)
+
+            if stop:
+                break
+
+            if iter % train_batch_num == 0 and epoch_end_callback and callable(epoch_end_callback):
                 epoch_end_callback()
 
         if monitor:
-            plt.savefig('train.png')
+            m.save()
 
-        return np.asarray(train_losses).reshape(epoch, batch_num)
+        return np.asarray(train_losses).reshape(epoch, train_batch_num)
