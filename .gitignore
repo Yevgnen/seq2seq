@@ -121,6 +121,5 @@ ENV/
 # Rope project settings
 .ropeproject
 
-train.png
 data/mnist
 figure.png

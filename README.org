@@ -16,6 +16,325 @@
 #+CAPTION: The encoder-decoder scheme (source: [[http://qiita.com/odashi_t/items/a1be7c4964fbea6a116e#fnref3][ChainerとRNNと機械翻訳]])
 #+NAME: scheme
 [[file:scheme.png]]
+** Training
+The model seems a bit difficult to train. I haven't got a GPU so I think I won't get into it at this moment.
+#+CAPTION: LOSS
+#+NAME: loss
+[[file:figure.png]]
+** Sampling
+The following samples comes from a insufficiently trained model.
+
+At the beginning of the training
+#+BEGIN_EXAMPLE
+  sampling on validating data...
+  2016-05-23 23:48:05,133 - seq2seq - INFO -  Source: それ で 船長 は 彼 の 世話 を し ま し た 。 _ _ _
+  2016-05-23 23:48:05,133 - seq2seq - INFO -  Target: so the captain took care of him . _ _ _ _ _ _ _ _
+  2016-05-23 23:48:05,133 - seq2seq - INFO - Predict: i i . . . . . . _ _ _ _ _ _ _ _
+  2016-05-23 23:48:05,133 - seq2seq - INFO - -------------------------------------------------
+  2016-05-23 23:48:05,134 - seq2seq - INFO -  Source: ケン は 外国 に 行 く こと に 決め た 。 _ _ _ _ _
+  2016-05-23 23:48:05,134 - seq2seq - INFO -  Target: ken decided on going abroad . _ _ _ _ _ _ _ _ _ _
+  2016-05-23 23:48:05,134 - seq2seq - INFO - Predict: i i . . . . _ _ _ _ _ _ _ _ _ _
+  2016-05-23 23:48:05,134 - seq2seq - INFO - -------------------------------------------------
+  2016-05-23 23:48:05,134 - seq2seq - INFO -  Source: 彼 の 目 は <U> の 様 だ 。 _ _ _ _ _ _ _
+  2016-05-23 23:48:05,134 - seq2seq - INFO -  Target: his eyes are like those of a leopard . _ _ _ _ _ _ _
+  2016-05-23 23:48:05,134 - seq2seq - INFO - Predict: i i . . . . . . . _ _ _ _ _ _ _
+  2016-05-23 23:48:05,134 - seq2seq - INFO - -------------------------------------------------
+  2016-05-23 23:48:05,135 - seq2seq - INFO -  Source: 世界 地図 を 見せ て いただけ ま せ ん か 。 _ _ _ _ _
+  2016-05-23 23:48:05,135 - seq2seq - INFO -  Target: will you show me a map of the world ? _ _ _ _ _ _
+  2016-05-23 23:48:05,135 - seq2seq - INFO - Predict: i i . . . . . . . . _ _ _ _ _ _
+  2016-05-23 23:48:05,135 - seq2seq - INFO - -------------------------------------------------
+  2016-05-23 23:48:05,135 - seq2seq - INFO -  Source: 私 は 君 の 言 う こと を 信 じ て い る 。 _ _
+  2016-05-23 23:48:05,135 - seq2seq - INFO -  Target: i believe you . _ _ _ _ _ _ _ _ _ _ _ _
+  2016-05-23 23:48:05,135 - seq2seq - INFO - Predict: i i . . _ _ _ _ _ _ _ _ _ _ _ _
+  2016-05-23 23:48:05,135 - seq2seq - INFO - -------------------------------------------------
+#+END_EXAMPLE
+then...
+#+BEGIN_EXAMPLE
+  sampling on validating data...
+  2016-05-25 05:05:40,962 - seq2seq - INFO -  Source: そう 言 っ て くれ て ありがとう 。 _ _ _ _ _ _ _ _
+  2016-05-25 05:05:40,962 - seq2seq - INFO -  Target: it is kind of you to say so . _ _ _ _ _ _ _
+  2016-05-25 05:05:40,962 - seq2seq - INFO - Predict: it 's kind of you say . . . _ _ _ _ _ _ _
+  2016-05-25 05:05:40,962 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 05:05:40,962 - seq2seq - INFO -  Source: 私 は 他人 に 親切 に する こと が 難し い と わか っ た 。
+  2016-05-25 05:05:40,962 - seq2seq - INFO -  Target: i found it difficult to be kind to others . _ _ _ _ _ _
+  2016-05-25 05:05:40,962 - seq2seq - INFO - Predict: i found that difficult to to kind to to . _ _ _ _ _ _
+  2016-05-25 05:05:40,962 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 05:05:40,963 - seq2seq - INFO -  Source: まあ ちょっと 私 の 身 に な っ て くださ い よ 。 _ _ _
+  2016-05-25 05:05:40,963 - seq2seq - INFO -  Target: just put yourself in my shoes . _ _ _ _ _ _ _ _ _
+  2016-05-25 05:05:40,963 - seq2seq - INFO - Predict: just put with you my come me _ _ _ _ _ _ _ _ _
+  2016-05-25 05:05:40,963 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 05:05:40,963 - seq2seq - INFO -  Source: 国 の 数 だけ 習慣 が あ る 。 _ _ _ _ _ _ _
+  2016-05-25 05:05:40,963 - seq2seq - INFO -  Target: so many countries , so many customs . _ _ _ _ _ _ _ _
+  2016-05-25 05:05:40,963 - seq2seq - INFO - Predict: many many many many many in many many _ _ _ _ _ _ _ _
+  2016-05-25 05:05:40,963 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 05:05:40,963 - seq2seq - INFO -  Source: 彼 は ６ 時 に 帰宅 し ま す か 。 _ _ _ _ _
+  2016-05-25 05:05:40,963 - seq2seq - INFO -  Target: does he come home at six ? _ _ _ _ _ _ _ _ _
+  2016-05-25 05:05:40,963 - seq2seq - INFO - Predict: will he come home home six ? _ _ _ _ _ _ _ _ _
+  2016-05-25 05:05:40,963 - seq2seq - INFO - -------------------------------------------------
+#+END_EXAMPLE
+Predicting
+#+BEGIN_EXAMPLE
+  2016-05-25 20:18:39,577 - seq2seq - INFO -  Source: 彼 は 公園 の どこ か に い る 。 _ _ _ _ _ _
+  2016-05-25 20:18:39,577 - seq2seq - INFO -  Target: he 's somewhere about the park . _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,577 - seq2seq - INFO - Predict: he is in the park . . _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,577 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,578 - seq2seq - INFO -  Source: 人々 は 、 助け を 求め て 叫 ん だ 。 _ _ _ _ _
+  2016-05-25 20:18:39,578 - seq2seq - INFO -  Target: the men cried for help . _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,578 - seq2seq - INFO - Predict: we asked for for help . _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,578 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,578 - seq2seq - INFO -  Source: 困 っ た こと に は 今 あまり お 金 が な い ん だ 。
+  2016-05-25 20:18:39,578 - seq2seq - INFO -  Target: the trouble is that i don 't have much money now . _ _ _ _
+  2016-05-25 20:18:39,579 - seq2seq - INFO - Predict: i short just money for money money . . . . . _ _ _ _
+  2016-05-25 20:18:39,579 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,579 - seq2seq - INFO -  Source: 彼 は 遅れ な い で 何 と か そこ へ 到着 し た 。 _
+  2016-05-25 20:18:39,579 - seq2seq - INFO -  Target: he managed to get there in time . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,579 - seq2seq - INFO - Predict: he arrived in on there there . . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,579 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,580 - seq2seq - INFO -  Source: 最近 この 仕事 に かか り きり で す 。 _ _ _ _ _ _
+  2016-05-25 20:18:39,580 - seq2seq - INFO -  Target: i 'm tied up with this job recently . _ _ _ _ _ _ _
+  2016-05-25 20:18:39,580 - seq2seq - INFO - Predict: this is off on every day . . . _ _ _ _ _ _ _
+  2016-05-25 20:18:39,580 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,581 - seq2seq - INFO -  Source: 私 たち は みんな 君 の 健康 を 心配 し て い ま す 。 _
+  2016-05-25 20:18:39,581 - seq2seq - INFO -  Target: we are all anxious about your health . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,581 - seq2seq - INFO - Predict: we are anxious anxious about your health . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,581 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,581 - seq2seq - INFO -  Source: 彼女 は 毎日 テニス を する 。 _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,581 - seq2seq - INFO -  Target: she plays tennis every day . _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,582 - seq2seq - INFO - Predict: she will tennis every day . _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,582 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,583 - seq2seq - INFO -  Source: 宿題 の いちばん 後 の 問題 を や っ た か い 。 _ _ _
+  2016-05-25 20:18:39,583 - seq2seq - INFO -  Target: did you do the last problem of the homework ? _ _ _ _ _ _
+  2016-05-25 20:18:39,583 - seq2seq - INFO - Predict: why do your best do your ? ? ? ? _ _ _ _ _ _
+  2016-05-25 20:18:39,583 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,583 - seq2seq - INFO -  Source: その 機械 は 故障 し て い る 。 _ _ _ _ _ _ _
+  2016-05-25 20:18:39,583 - seq2seq - INFO -  Target: the machine is out of order . _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,583 - seq2seq - INFO - Predict: this machine is of in order . _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,584 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,584 - seq2seq - INFO -  Source: 私 は その 件 に つ い て 彼 と 話し合 っ た 。 _ _
+  2016-05-25 20:18:39,584 - seq2seq - INFO -  Target: i spoke with him about the matter . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,584 - seq2seq - INFO - Predict: i cut the him at the . . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,584 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,584 - seq2seq - INFO -  Source: 彼 は たいてい 遅 く 帰宅 する 。 _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,585 - seq2seq - INFO -  Target: he usually comes home late . _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,585 - seq2seq - INFO - Predict: he often come home late . _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,585 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,585 - seq2seq - INFO -  Source: 彼 は 私 の 顔 を 見 て 説明 を 求め た 。 _ _ _
+  2016-05-25 20:18:39,585 - seq2seq - INFO -  Target: he looked at me for an explanation . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,585 - seq2seq - INFO - Predict: he asked on the the tears of . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,585 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,586 - seq2seq - INFO -  Source: 書 か ね ば な ら な い 手紙 が あ り ま す 。 _
+  2016-05-25 20:18:39,586 - seq2seq - INFO -  Target: i have to write a letter . _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,586 - seq2seq - INFO - Predict: i have a letter to you . _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,586 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,586 - seq2seq - INFO -  Source: 座 っ て も 良 い で す か 。 _ _ _ _ _ _
+  2016-05-25 20:18:39,586 - seq2seq - INFO -  Target: may i sit down ? _ _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,586 - seq2seq - INFO - Predict: can you sit up ? _ _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,587 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,587 - seq2seq - INFO -  Source: 彼 は 懸命 に 働 い て 、 そして ついに 病気 に な っ た 。
+  2016-05-25 20:18:39,587 - seq2seq - INFO -  Target: he worked hard , until he fell ill . _ _ _ _ _ _ _
+  2016-05-25 20:18:39,587 - seq2seq - INFO - Predict: he lost and so so too he go go _ _ _ _ _ _ _
+  2016-05-25 20:18:39,587 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,587 - seq2seq - INFO -  Source: 家 に 着 い た とたん 嵐 に な っ た 。 _ _ _ _
+  2016-05-25 20:18:39,587 - seq2seq - INFO -  Target: i had barely got home when the storm broke . _ _ _ _ _ _
+  2016-05-25 20:18:39,587 - seq2seq - INFO - Predict: as home as when i , , , , home _ _ _ _ _ _
+  2016-05-25 20:18:39,588 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,590 - seq2seq - INFO -  Source: 私 は 昼食 に 招待 さ れ た 。 _ _ _ _ _ _ _
+  2016-05-25 20:18:39,590 - seq2seq - INFO -  Target: i was invited to lunch . _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,590 - seq2seq - INFO - Predict: we was invited to dinner . _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,590 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,592 - seq2seq - INFO -  Source: 彼 は すぐ に 返事 を 書 く だ ろ う 。 _ _ _ _
+  2016-05-25 20:18:39,592 - seq2seq - INFO -  Target: he will write an answer very soon . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,592 - seq2seq - INFO - Predict: he will never get you back . . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,592 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,592 - seq2seq - INFO -  Source: 彼 は 娘 に 新し い ドレス を 買 っ て や っ た 。 _
+  2016-05-25 20:18:39,592 - seq2seq - INFO -  Target: he bought his daughter a new dress . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,593 - seq2seq - INFO - Predict: he made her a a new new dress _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,593 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,593 - seq2seq - INFO -  Source: 休暇 は いかが で し た か 。 _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,626 - seq2seq - INFO -  Target: how did you enjoy your vacation ? _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,626 - seq2seq - INFO - Predict: was you like to on the vacation _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,626 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,627 - seq2seq - INFO -  Source: 彼 は かなり の 金 を もうけ た 。 _ _ _ _ _ _ _
+  2016-05-25 20:18:39,627 - seq2seq - INFO -  Target: he has earned a lot of money . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,627 - seq2seq - INFO - Predict: he was much been a an question . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,627 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,628 - seq2seq - INFO -  Source: よ い 魚 も ３ 日 た て ば <U> く な る 。 _ _
+  2016-05-25 20:18:39,628 - seq2seq - INFO -  Target: the best fish <U> when they are three days old . _ _ _ _ _
+  2016-05-25 20:18:39,628 - seq2seq - INFO - Predict: i weather lived a a , , japanese . . . _ _ _ _ _
+  2016-05-25 20:18:39,628 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,629 - seq2seq - INFO -  Source: もう 宿題 は 終わ っ た の ？ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,629 - seq2seq - INFO -  Target: have you finished your homework ? _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,629 - seq2seq - INFO - Predict: have you finished your homework ? _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,629 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,630 - seq2seq - INFO -  Source: その 少年 は 大人 び て 見え た 。 _ _ _ _ _ _ _
+  2016-05-25 20:18:39,630 - seq2seq - INFO -  Target: the boy looked like a grown-up . _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,630 - seq2seq - INFO - Predict: the boy came to the . . _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,630 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,630 - seq2seq - INFO -  Source: 少年 が 私 の 方 へ 駆け て 来 た 。 _ _ _ _ _
+  2016-05-25 20:18:39,630 - seq2seq - INFO -  Target: a boy came running towards me . _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,631 - seq2seq - INFO - Predict: a boy came gone from . . _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,631 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,632 - seq2seq - INFO -  Source: また 後 で かけ ま す 。 _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,632 - seq2seq - INFO -  Target: i 'll call again later . _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,632 - seq2seq - INFO - Predict: i 'll get you . . _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,632 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,634 - seq2seq - INFO -  Source: 壁 を 塗 っ て い る 人 は 私 の お 父 さん だ 。
+  2016-05-25 20:18:39,634 - seq2seq - INFO -  Target: the man painting the wall is my father . _ _ _ _ _ _ _
+  2016-05-25 20:18:39,634 - seq2seq - INFO - Predict: a is a picture of his name . . _ _ _ _ _ _ _
+  2016-05-25 20:18:39,634 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,635 - seq2seq - INFO -  Source: 彼女 は 私 の 親友 で す 。 _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,635 - seq2seq - INFO -  Target: she is a good friend of mine . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,636 - seq2seq - INFO - Predict: she is my best friend . . . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,636 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,636 - seq2seq - INFO -  Source: あそこ で 何 を し て い た の か 。 _ _ _ _ _
+  2016-05-25 20:18:39,636 - seq2seq - INFO -  Target: what were you doing down there ? _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,636 - seq2seq - INFO - Predict: what was is accident is ? ? _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,636 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,637 - seq2seq - INFO -  Source: 私 は 終電車 に 乗 り 遅れ た 。 _ _ _ _ _ _ _
+  2016-05-25 20:18:39,637 - seq2seq - INFO -  Target: i was late for the last train . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,637 - seq2seq - INFO - Predict: i was a the last last train . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,638 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,638 - seq2seq - INFO -  Source: その 映画 を 何 回 見 ま し た か 。 _ _ _ _ _
+  2016-05-25 20:18:39,638 - seq2seq - INFO -  Target: how many times did you see the movie ? _ _ _ _ _ _ _
+  2016-05-25 20:18:39,639 - seq2seq - INFO - Predict: where at did you see the movie ? ? _ _ _ _ _ _ _
+  2016-05-25 20:18:39,639 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,640 - seq2seq - INFO -  Source: 彼 は その 問題 を 解け る と 思 い ま す 。 _ _ _
+  2016-05-25 20:18:39,640 - seq2seq - INFO -  Target: we think it possible for him to solve the problem . _ _ _ _ _
+  2016-05-25 20:18:39,640 - seq2seq - INFO - Predict: he do to solve the the problem . . . . _ _ _ _ _
+  2016-05-25 20:18:39,640 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,640 - seq2seq - INFO -  Source: 私 は 音楽 を 聴 き ながら 勉強 を よく する 。 _ _ _ _
+  2016-05-25 20:18:39,640 - seq2seq - INFO -  Target: i often study while listening to music . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,640 - seq2seq - INFO - Predict: i have to speak studying music . . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,640 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,641 - seq2seq - INFO -  Source: 毎朝 早起き でき る よう に 努力 する つもり だ 。 _ _ _ _ _
+  2016-05-25 20:18:39,641 - seq2seq - INFO -  Target: i 'll make an effort to get up early every morning . _ _ _ _
+  2016-05-25 20:18:39,641 - seq2seq - INFO - Predict: i am 't to up getting up up my day . . _ _ _ _
+  2016-05-25 20:18:39,641 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,641 - seq2seq - INFO -  Source: たいてい の 男の子 は テレビ ゲーム が 好き だ 。 _ _ _ _ _ _
+  2016-05-25 20:18:39,641 - seq2seq - INFO -  Target: most boys like computer games . _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,641 - seq2seq - INFO - Predict: every day team often now . _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,643 - seq2seq - INFO -  Source: 必ず 時間 どおり に 来 なさ い 。 _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,643 - seq2seq - INFO -  Target: please be sure to come on time . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,643 - seq2seq - INFO - Predict: please out to about time time . . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,643 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,676 - seq2seq - INFO -  Source: 父 は 私 に 決して 多く の 助言 は し な かっ た 。 _ _
+  2016-05-25 20:18:39,677 - seq2seq - INFO -  Target: my father never gave me much advice . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,677 - seq2seq - INFO - Predict: he was no afford a brother friends . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,677 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,677 - seq2seq - INFO -  Source: 私 たち は 日本 の 歌 を いく つ か 習 い た い 。 _
+  2016-05-25 20:18:39,678 - seq2seq - INFO -  Target: we want to learn some japanese songs . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,678 - seq2seq - INFO - Predict: i want to be for for english french _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,678 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,678 - seq2seq - INFO -  Source: 私 たち の ほう へ 走 っ て くる 少年 は だれ で す か 。
+  2016-05-25 20:18:39,679 - seq2seq - INFO -  Target: who is that boy running toward us ? _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,679 - seq2seq - INFO - Predict: who is the go go there be be _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,679 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,679 - seq2seq - INFO -  Source: あい かわ ら ず まだ 寒 い 。 _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,680 - seq2seq - INFO -  Target: it is still as cold as ever . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,680 - seq2seq - INFO - Predict: why haven not he . . . ? _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,680 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,680 - seq2seq - INFO -  Source: 彼 が イギリス に つ い て 言 っ た こと は 本当 で す 。
+  2016-05-25 20:18:39,680 - seq2seq - INFO -  Target: what he said about england is true . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,680 - seq2seq - INFO - Predict: she is true that he was in you _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,680 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,681 - seq2seq - INFO -  Source: 私 の 父 は 事業 に 失敗 し た 。 _ _ _ _ _ _
+  2016-05-25 20:18:39,681 - seq2seq - INFO -  Target: my father failed in business . _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,681 - seq2seq - INFO - Predict: father went an his of father _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,681 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,681 - seq2seq - INFO -  Source: この 本 は 君 の 物 で す 。 _ _ _ _ _ _ _
+  2016-05-25 20:18:39,681 - seq2seq - INFO -  Target: this book belongs to you . _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,682 - seq2seq - INFO - Predict: this book is mine . . _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,682 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,682 - seq2seq - INFO -  Source: 私 は １ 週間 ひ ど い かぜ を ひ い て い た 。 _
+  2016-05-25 20:18:39,682 - seq2seq - INFO -  Target: i had a bad cold for a week . _ _ _ _ _ _ _
+  2016-05-25 20:18:39,682 - seq2seq - INFO - Predict: a last he caught was . week . week _ _ _ _ _ _ _
+  2016-05-25 20:18:39,682 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,683 - seq2seq - INFO -  Source: 彼 ら は 湖 へ ピクニック に 行 っ た 。 _ _ _ _ _
+  2016-05-25 20:18:39,683 - seq2seq - INFO -  Target: they went on a picnic to the lake . _ _ _ _ _ _ _
+  2016-05-25 20:18:39,683 - seq2seq - INFO - Predict: they went for a picnic at the lake . _ _ _ _ _ _ _
+  2016-05-25 20:18:39,683 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,683 - seq2seq - INFO -  Source: 私 は 日本 語 、 英語 、 フランス 語 を 話 し ま す 。 _
+  2016-05-25 20:18:39,683 - seq2seq - INFO -  Target: i speak japanese , english , and french . _ _ _ _ _ _ _
+  2016-05-25 20:18:39,684 - seq2seq - INFO - Predict: i speak english english , french english . . _ _ _ _ _ _ _
+  2016-05-25 20:18:39,684 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,684 - seq2seq - INFO -  Source: なぜ 彼 は 計画 を 変え た の で す か 。 _ _ _ _
+  2016-05-25 20:18:39,684 - seq2seq - INFO -  Target: why did he change his plans ? _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,684 - seq2seq - INFO - Predict: what does his 's ? ? ? _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,684 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,685 - seq2seq - INFO -  Source: 子供 の ころ よく 父 と 釣り に 行 き ま し た 。 _ _
+  2016-05-25 20:18:39,685 - seq2seq - INFO -  Target: i used to go fishing with my father when i was a child . _ _
+  2016-05-25 20:18:39,685 - seq2seq - INFO - Predict: i went fishing with a child often old sister . . . . . _ _
+  2016-05-25 20:18:39,685 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,685 - seq2seq - INFO -  Source: 彼 は 振る舞い が とても 変わ っ て い る 。 _ _ _ _ _
+  2016-05-25 20:18:39,685 - seq2seq - INFO -  Target: he is very peculiar in his behavior . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,685 - seq2seq - INFO - Predict: he always no little . . . . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,686 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,686 - seq2seq - INFO -  Source: それ 以下 の もの は <U> な い 。 _ _ _ _ _ _ _
+  2016-05-25 20:18:39,686 - seq2seq - INFO -  Target: i cannot take less . _ _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,686 - seq2seq - INFO - Predict: the <U> keep the . _ _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,686 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,686 - seq2seq - INFO -  Source: 彼 は 時々 私 に 会 い に 来 て くれ る 。 _ _ _
+  2016-05-25 20:18:39,687 - seq2seq - INFO -  Target: he comes to see me once in a while . _ _ _ _ _ _
+  2016-05-25 20:18:39,687 - seq2seq - INFO - Predict: he comes me see me me me . . . _ _ _ _ _ _
+  2016-05-25 20:18:39,687 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,687 - seq2seq - INFO -  Source: <U> が 激し い で す 。 _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,687 - seq2seq - INFO -  Target: my baby <U> very hard . _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,687 - seq2seq - INFO - Predict: it 's a little . . _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,687 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,688 - seq2seq - INFO -  Source: どうぞ ご 自由 に <U> っ て くださ い 。 _ _ _ _ _ _
+  2016-05-25 20:18:39,688 - seq2seq - INFO -  Target: help yourself , please . _ _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,688 - seq2seq - INFO - Predict: please help to yourself . _ _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,688 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,688 - seq2seq - INFO -  Source: 出発 まで まだ 時間 が あ り ま す 。 _ _ _ _ _ _
+  2016-05-25 20:18:39,688 - seq2seq - INFO -  Target: there still is time until leaving . _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,688 - seq2seq - INFO - Predict: i have been late for i start _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,688 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,689 - seq2seq - INFO -  Source: 私 達 は 正装 し な けれ ば な り ま せ ん か 。 _
+  2016-05-25 20:18:39,689 - seq2seq - INFO -  Target: must we dress up ? _ _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,689 - seq2seq - INFO - Predict: do you have another night _ _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,689 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,689 - seq2seq - INFO -  Source: この 本 を 読 む の に ２ 時間 かか り ま す 。 _ _
+  2016-05-25 20:18:39,689 - seq2seq - INFO -  Target: it takes two hours to read this book . _ _ _ _ _ _ _
+  2016-05-25 20:18:39,690 - seq2seq - INFO - Predict: i read two this this . . . . _ _ _ _ _ _ _
+  2016-05-25 20:18:39,690 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,690 - seq2seq - INFO -  Source: 彼女 は 子供 たち に 部屋 に 入 る よう に 言 っ た 。 _
+  2016-05-25 20:18:39,690 - seq2seq - INFO -  Target: she called her children into the room . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,690 - seq2seq - INFO - Predict: she told her to of of of dog _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,690 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,691 - seq2seq - INFO -  Source: 手伝 っ て ほし い で す か 。 _ _ _ _ _ _ _
+  2016-05-25 20:18:39,691 - seq2seq - INFO -  Target: do you want me to give you a hand ? _ _ _ _ _ _
+  2016-05-25 20:18:39,691 - seq2seq - INFO - Predict: do you like to help ? ? ? ? ? _ _ _ _ _ _
+  2016-05-25 20:18:39,691 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,691 - seq2seq - INFO -  Source: いや で も その 仕事 を し な けれ ば な ら な い 。 _
+  2016-05-25 20:18:39,691 - seq2seq - INFO -  Target: you must do the work even if you don 't like it . _ _ _
+  2016-05-25 20:18:39,691 - seq2seq - INFO - Predict: if this it , , you you do do do . . . _ _ _
+  2016-05-25 20:18:39,691 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,692 - seq2seq - INFO -  Source: 夕飯 は もう 食べ ま し た か 。 _ _ _ _ _ _ _
+  2016-05-25 20:18:39,692 - seq2seq - INFO -  Target: have you had dinner ? _ _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,692 - seq2seq - INFO - Predict: do you eat ? ? _ _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,692 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,692 - seq2seq - INFO -  Source: 私 は 電車 の 中 で 読 む 本 が ほし い 。 _ _ _
+  2016-05-25 20:18:39,692 - seq2seq - INFO -  Target: i want a book to read in the train . _ _ _ _ _ _
+  2016-05-25 20:18:39,692 - seq2seq - INFO - Predict: i looked read to book in the book . the _ _ _ _ _ _
+  2016-05-25 20:18:39,692 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,692 - seq2seq - INFO -  Source: アリス は この 前 の 日曜 日 から ずっと 風邪 で す 。 _ _ _
+  2016-05-25 20:18:39,692 - seq2seq - INFO -  Target: alice has had a cold since last sunday . _ _ _ _ _ _ _
+  2016-05-25 20:18:39,693 - seq2seq - INFO - Predict: it is like go to a a a yesterday _ _ _ _ _ _ _
+  2016-05-25 20:18:39,726 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,727 - seq2seq - INFO -  Source: また の 機会 に し ま しょ う 。 _ _ _ _ _ _ _
+  2016-05-25 20:18:39,727 - seq2seq - INFO -  Target: let 's make it some other time . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,727 - seq2seq - INFO - Predict: let 'll see a a . . . _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,727 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,728 - seq2seq - INFO -  Source: 最終 列車 は すでに 出発 し て しま っ た 。 _ _ _ _ _
+  2016-05-25 20:18:39,728 - seq2seq - INFO -  Target: the last train has already gone . _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,728 - seq2seq - INFO - Predict: i the had already the last night _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,728 - seq2seq - INFO - -------------------------------------------------
+  2016-05-25 20:18:39,729 - seq2seq - INFO -  Source: 彼 は お 調子 者 だ 。 _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,729 - seq2seq - INFO -  Target: he is easily <U> . _ _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,729 - seq2seq - INFO - Predict: he is something he to _ _ _ _ _ _ _ _ _ _ _
+  2016-05-25 20:18:39,730 - seq2seq - INFO - -------------------------------------------------
+#+END_EXAMPLE
+Even though the model is not be trained enough, but we still find that the model has learn something useful and interesting. For example, =asked for help= and  =cried for help=, =she is a good friend of mime= and =she is my best friend=, =they went on a picnic to the lake= and =they went for a picnic at the lake= and so on.
 * References
 1. Ilya Sutskever, Oriol Vinyals, Quoc V. Le, Sequence to Sequence Learning with Neural Networks, https://papers.nips.cc/paper/5346-sequence-to-sequence-learning-with-neural-networks.pdf
 2. Deep Learning, Ian Goodfellow, Yoshua Bengio and Aaron Courville, P385, http://www.deeplearningbook.org
