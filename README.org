@@ -20,7 +20,7 @@
 The model seems a bit difficult to train. I haven't got a GPU so I think I won't get into it at this moment.
 #+CAPTION: LOSS
 #+NAME: loss
-[[file:figure.png]]
+[[file:train.png]]
 ** Sampling
 The following samples comes from a insufficiently trained model.
 
