@@ -334,7 +334,7 @@ Predicting
   2016-05-25 20:18:39,729 - seq2seq - INFO - Predict: he is something he to _ _ _ _ _ _ _ _ _ _ _
   2016-05-25 20:18:39,730 - seq2seq - INFO - -------------------------------------------------
 #+END_EXAMPLE
-Even though the model is not be trained enough, but we still find that the model has learn something useful and interesting. For example, =asked for help= and  =cried for help=, =she is a good friend of mime= and =she is my best friend=, =they went on a picnic to the lake= and =they went for a picnic at the lake= and so on.
+Even though the model is not be trained enough, but we still find that the model has learn something useful and interesting. For example, =asked for help= and  =cried for help=, =she is a good friend of mine= and =she is my best friend=, =they went on a picnic to the lake= and =they went for a picnic at the lake= and so on.
 * References
 1. Ilya Sutskever, Oriol Vinyals, Quoc V. Le, Sequence to Sequence Learning with Neural Networks, https://papers.nips.cc/paper/5346-sequence-to-sequence-learning-with-neural-networks.pdf
 2. Deep Learning, Ian Goodfellow, Yoshua Bengio and Aaron Courville, P385, http://www.deeplearningbook.org
